@@ -1,0 +1,15 @@
+C_FLAGS = -I..
+L_FLAGS = -L.. -lwinmm
+
+BIN = ../modwinmm.dll
+
+all: ${BIN}
+
+${BIN}: modwinmm.o
+	gcc -shared -o $@ $^ ${L_FLAGS}
+
+modwinmm.o: modwinmm.c modwinmm.h
+	gcc -c -g -Wall -Wextra $< -o $@ ${C_FLAGS}
+
+clean:
+	rm -f *.o

@@ -1,0 +1,32 @@
+C_FLAGS = -Wall `pkg-config --cflags gtk+-2.0`
+L_FLAGS = `pkg-config --libs gtk+-2.0 gthread-2.0`
+
+OBJ1 = first.o events.o virkb.o process.o modwinmm.dll msk0.dll
+OBJ2 = second.o modwinmm.dll msk0.dll
+
+all: first.ui first
+
+first: ${OBJ1}
+	gcc -o first ${OBJ1} ${L_FLAGS}
+
+second: ${OBJ2}
+	gcc -o second ${OBJ2} ${L_FLAGS}
+
+%.o: %.c
+	gcc -c -g -Wall $< ${C_FLAGS}
+
+first.ui: first.glade
+	gtk-builder-convert first.glade first.ui
+
+modwinmm.dll:
+	@make -C mod-winmm
+
+msk0.dll:
+	@make -C msk0
+
+clean:
+	make -C mod-winmm clean
+	make -C msk0 clean
+	rm -f *.o
+
+.PHONY: msk0.dll modwinmm.dll

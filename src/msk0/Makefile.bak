@@ -1,0 +1,22 @@
+C_FLAGS = -g -Wall `pkg-config --cflags glib-2.0`
+L_FLAGS = `pkg-config --libs glib-2.0`
+
+OBJ_TEST = msktestzone.o
+OBJECTS  = mskmodule.o mskworld.o mskcontainer.o mskconstant.o mskoscillator.o \
+           mskaddmul.o
+
+BIN=../msk0.dll
+
+all: test ${BIN}
+
+${BIN}: ${OBJECTS}
+	gcc -shared -o $@ $^ ${L_FLAGS}
+
+test: ${OBJECTS} ${OBJ_TEST}
+	gcc -o test $^ ${L_FLAGS}
+
+msk%.o: msk%.c msk0.h mskinternal.h
+	gcc -c $< ${C_FLAGS}
+
+clean:
+	rm -f *.o

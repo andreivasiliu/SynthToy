@@ -1,0 +1,10 @@
+// These should end up as comments in the proper C files.
+
+MSK:
+ - There will be NO global or static variables.
+
+ - msk_*_create() will now have to call a msk_module_create(..., ..., ...)
+instead of filling named fields in a structure. It's less readable, but it
+gives errors when something new is added.
+
+ - msk_*_process() will have to rely on its state for storing port buffer locations. Any new model will have to satisfy: speed, readability.
