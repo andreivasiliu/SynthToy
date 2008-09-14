@@ -3,7 +3,7 @@
 set -e -x
 
 aclocal
-autoconf
-automake -ac
-autoheader
 libtoolize -c
+autoconf
+autoheader
+automake -ac
