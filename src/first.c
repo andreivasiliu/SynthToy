@@ -63,11 +63,6 @@ G_MODULE_EXPORT void on_drawingarea1_expose_event(GtkObject *object, GdkEventExp
     paint_array_to_widget(GTK_WIDGET(object), array, 512);
 }
 
-G_MODULE_EXPORT void on_drawingarea2_expose_event(GtkObject *object, GdkEventExpose *event)
-{
-    paint_array_to_widget(GTK_WIDGET(object), array2, 512);
-}
-
 G_MODULE_EXPORT void on_drawingarea3_expose_event(GtkObject *object, GdkEventExpose *event)
 {
     paint_keyboard(GTK_WIDGET(object));
@@ -103,7 +98,7 @@ int main(int argc, char *argv[])
     
     builder = gtk_builder_new();
     if ( !gtk_builder_add_from_file(builder, "first.ui", NULL) )
-        g_printf("Error.\n");
+        g_error("I can't find my 'first.ui' file.");
     
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
     left_osc = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea1"));

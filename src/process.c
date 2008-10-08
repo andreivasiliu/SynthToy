@@ -8,6 +8,7 @@
 
 extern void virkb_noteon(int note);
 extern void virkb_noteoff(int note);
+extern void draw_module(MskModule *mod, long x, long y);
 
 extern float array[512];
 extern float array2[512];
@@ -38,6 +39,13 @@ void init_channel(int ch)
     output = msk_output_create(cont, audio1, MSK_AUDIO_DATA);
     voice[ch].freq_add = msk_addmul_create(cont);
     
+    draw_module(voice[ch].osc, 340, 30);
+    draw_module(voice[ch].lfo, 370, 145);
+    draw_module(voice[ch].osc_freq, 85, 30);
+    draw_module(voice[ch].lfo_freq, 100, 155);
+    draw_module(voice[ch].amp, 215, 35);
+    draw_module(voice[ch].freq_add, 220, 140);
+    
     msk_connect_ports(voice[ch].osc_freq, "output", voice[ch].freq_add, "input");
     msk_connect_ports(voice[ch].freq_add, "output", voice[ch].osc, "frequency");
     msk_connect_ports(voice[ch].lfo_freq, "output", voice[ch].lfo, "frequency");
@@ -58,7 +66,7 @@ void aural_init()
     
     cont = msk_world_create(44100, 256);
     
-    for ( i = 0; i < 16; i++ )
+    for ( i = 0; i < 1; i++ )
         init_channel(i);
     
     msk_world_prepare(cont);
@@ -77,7 +85,7 @@ void process_func(float *in, float *out, int nframes, int sample_rate, void *dat
         
         memset(buffer, 0, sizeof(float)*256);
         
-        for ( ch = 0; ch < 16; ch++ )
+        for ( ch = 0; ch < 1; ch++ )
         {
             char audio1[16];
             

@@ -84,8 +84,6 @@ void msk_create_buffers_on_module(MskModule *mod)
     
     GList *lport;
     
-    g_print("Module: %s.\n", mod->name);
-    
     for ( lport = mod->in_ports; lport; lport = lport->next )
     {
         MskPort *port = (MskPort*) lport->data;
@@ -93,15 +91,15 @@ void msk_create_buffers_on_module(MskModule *mod)
         
         if ( linked_port )
         {
-            g_print("Connecting '%s' (%s) to the buffer of '%s' (%s).\n",
-                    port->name, port->owner->name,
-                    linked_port->name, linked_port->owner->name);
+//            g_print("Connecting '%s' (%s) to the buffer of '%s' (%s).\n",
+//                    port->name, port->owner->name,
+//                    linked_port->name, linked_port->owner->name);
             port->buffer = linked_port->buffer;
         }
         else
         {
-            g_print("Creating empty input for port '%s' (%s).\n",
-                    port->name, port->owner->name);
+//            g_print("Creating empty input for port '%s' (%s).\n",
+//                    port->name, port->owner->name);
             
             port->buffer = g_new0(float, mod->world->block_size);
             
@@ -132,7 +130,7 @@ void msk_create_buffers_on_container(MskContainer *container)
 {
     GList *lmod;
     
-    g_print("Entering container.\n");
+//    g_print("Entering container.\n");
     
     for ( lmod = container->process_order; lmod; lmod = lmod->next )
     {
@@ -141,7 +139,7 @@ void msk_create_buffers_on_container(MskContainer *container)
         msk_create_buffers_on_module(mod);
     }
     
-    g_print("Leaving container.\n");
+//    g_print("Leaving container.\n");
 }
 
 
