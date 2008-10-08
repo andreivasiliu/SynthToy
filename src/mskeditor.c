@@ -210,7 +210,11 @@ void paint_editor(GtkWidget *widget)
         GraphicalModule *gmod = item->data;
         
         cairo_set_source_surface(cr, gmod->surface, gmod->x, gmod->y);
-        cairo_paint(cr);
+        
+        if ( gmod == dragged_module )
+            cairo_paint_with_alpha(cr, 0.8);
+        else
+            cairo_paint(cr);
     }
     
     cairo_destroy(cr);

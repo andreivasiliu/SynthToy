@@ -1,7 +1,9 @@
 C_FLAGS = -I..
 L_FLAGS = -L.. -lwinmm
 
-BIN = ../modwinmm.dll
+MODEXT = .dll
+
+BIN = ../modwinmm${MODEXT}
 
 all: ${BIN}
 
@@ -13,3 +15,4 @@ modwinmm.o: modwinmm.c modwinmm.h
 
 clean:
 	rm -f *.o
+

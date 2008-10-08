@@ -1,16 +1,17 @@
 C_FLAGS = -Wall `pkg-config --cflags gtk+-2.0`
 L_FLAGS = `pkg-config --libs gtk+-2.0 gthread-2.0`
 
-OBJ1 = first.o events.o virkb.o process.o modwinmm.dll msk0.dll
-OBJ2 = second.o modwinmm.dll msk0.dll
+BINEXT = .exe
+MODEXT = .dll
 
-all: first.ui first
+OBJ1 = first.o events.o virkb.o process.o mskeditor.o msk0$(MODEXT) modwinmm$(MODEXT)
 
-first: ${OBJ1}
-	gcc -o first ${OBJ1} ${L_FLAGS}
 
-second: ${OBJ2}
-	gcc -o second ${OBJ2} ${L_FLAGS}
+
+all: first.ui first${BINEXT}
+
+first$(BINEXT): ${OBJ1}
+	gcc -o $@ ${OBJ1} ${L_FLAGS}
 
 %.o: %.c
 	gcc -c -g -Wall $< ${C_FLAGS}
@@ -18,15 +19,15 @@ second: ${OBJ2}
 first.ui: first.glade
 	gtk-builder-convert first.glade first.ui
 
-modwinmm.dll:
-	@make -C mod-winmm
+modwinmm$(MODEXT):
+	@make -C mod-winmm -f Makefile.bak
 
-msk0.dll:
-	@make -C msk0
+msk0$(MODEXT):
+	@make -C msk0 -f Makefile.bak
 
 clean:
-	make -C mod-winmm clean
-	make -C msk0 clean
+	make -C mod-winmm -f Makefile.bak clean
+	make -C msk0 -f Makefile.bak clean
 	rm -f *.o
 
-.PHONY: msk0.dll modwinmm.dll
+.PHONY: msk0$(MODEXT) modwinmm$(MODEXT)
