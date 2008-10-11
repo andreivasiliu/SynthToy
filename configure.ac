@@ -7,10 +7,10 @@ AC_CONFIG_SRCDIR([src/events.c])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([-Wall foreign])
 
-AC_ARG_WITH([portaudio],
-  [AC_HELP_STRING([--with-portaudio], [enable support for PortAudio])],
-  [],
-  [with_portaudio=no])
+AC_ARG_WITH([winmm],
+  [AC_HELP_STRING([--with-winmm],
+    [enable support for Windows Multimedia API])],
+  [], [with_winmm=check])
 
 # Checks for programs.
 AC_PROG_AWK
@@ -21,13 +21,18 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 
-# Checks for packages.
+# Make sure these macros exists.
+m4_pattern_forbid([^PKG_])
+m4_pattern_forbid([^MSK_])
+
+# Checks for required packages.
 PKG_CHECK_MODULES(GLIB, [glib-2.0])
-PKG_CHECK_MODULES(GTK, [gtk+-2.0])
 PKG_CHECK_MODULES(GMODULE, [gmodule-2.0])
-AS_IF([test "x$with_portaudio" != "xno"],
-  [PKG_CHECK_MODULES(PORTAUDIO, [portaudio-2.0])
-   AC_DEFINE([HAVE_PORTAUDIO], [1], [Define if you have PortAudio])])
+PKG_CHECK_MODULES(GTK, [gtk+-2.0])
+
+# Checks for optional pakages. The macro is defined in acinclude.m4.
+MSK_CHECK_OPTIONAL_MODULE([portaudio], [PortAudio], [PORTAUDIO], [portaudio])
+MSK_CHECK_OPTIONAL_MODULE([jack], [JACK], [JACK], [jack])
 
 # Checks for libraries.
 #AC_CHECK_LIB([m], [sinf])
@@ -54,3 +59,15 @@ AC_CONFIG_FILES([Makefile
 #                src/mod-portaudio/Makefile
                  
 AC_OUTPUT
+
+
+# Echo some status.
+echo
+echo "Status:"
+echo -n "  portaudio support... "
+AS_IF([test "$have_portaudio" == "yes"], [echo "yes"], [echo "no"])
+echo -n "  jack support... "
+AS_IF([test "$have_jack" == "yes"], [echo "yes"], [echo "no"])
+echo -n "  winmm support... "
+AS_IF([test "$have_winmm" == "yes"], [echo "yes"], [echo "no"])
+echo
