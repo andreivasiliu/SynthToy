@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.3 on Fri Oct 03 21:49:41 2008 -->
+<!--Generated with glade3 3.4.3 on Sun Oct 12 18:34:06 2008 -->
 <glade-interface>
   <widget class="GtkWindow" id="window">
-    <property name="title" translatable="yes" comments="Main window title">Grapher</property>
+    <property name="title" translatable="yes" comments="Main window title">SynthToy</property>
     <signal name="focus_out_event" handler="on_window_focus_out_event"/>
     <signal name="destroy" handler="on_window_destroy"/>
     <child>
