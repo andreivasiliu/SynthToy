@@ -2,13 +2,21 @@
 #include <glib/gprintf.h>
 
 #include "header.h"
-#include "mod-winmm/modwinmm.h"
 
+#ifdef HAVE_JACK
+# include "mod-jack/modjack.h"
+#else
+# include "mod-winmm/modwinmm.h"
+#endif
 
 extern void paint_keyboard(GtkWidget *widget);
 
 GtkWidget *left_osc, *right_osc, *virkb, *vscale_pw, *vscale_mw;
+#ifdef HAVE_JACK
+void *jack_instance;
+#else
 void *winmm_instance;
+#endif
 float array[512];
 float array2[512];
 
@@ -19,13 +27,19 @@ guint timeout;
 
 G_MODULE_EXPORT void on_window_destroy(GtkObject *object, gpointer user_data)
 {
+#ifdef HAVE_JACK
+    modjack_deactivate(jack_instance);
+    modjack_fini(jack_instance);
+#else
     modwinmm_deactivate(winmm_instance);
     modwinmm_fini(winmm_instance);
+#endif
     
     g_source_remove(timeout);
     
     gtk_main_quit();
 }
+
 
 void paint_array_to_widget(GtkWidget *widget, float *array, int length)
 {
@@ -87,12 +101,21 @@ int main(int argc, char *argv[])
 //    g_thread_init(NULL);
 //    gdk_threads_init();
     
+#ifdef HAVE_JACK
+    jack_instance = modjack_init(process_func, event_func, NULL, &errmsg);
+    if ( !jack_instance )
+    {
+        g_error("Couldn't initialize the jack client (%s).", errmsg);
+        return 1;
+    }
+#else
     winmm_instance = modwinmm_init(process_func, event_func, NULL, &errmsg);
     if ( !winmm_instance )
     {
         g_error("Couldn't initialize the winmm client (%s).", errmsg);
         return 1;
     }
+#endif    
     
     gtk_init(&argc, &argv);
     
@@ -114,7 +137,12 @@ int main(int argc, char *argv[])
     timeout = g_timeout_add(50, periodic_refresh, NULL);
     
     aural_init();
+   
+#ifdef HAVE_JACK
+    modjack_activate(jack_instance);
+#else
     modwinmm_activate(winmm_instance);
+#endif
     
 //    gdk_threads_enter();
     gtk_main();

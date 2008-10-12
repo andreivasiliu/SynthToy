@@ -13,5 +13,6 @@ AC_DEFUN([MSK_CHECK_OPTIONAL_MODULE],
    AS_IF(test "x[$have_]$1" != "xno",
      [AC_DEFINE](HAVE_$3, [1], [Define if you have] $2)
      have_$1=yes)
+   AM_CONDITIONAL(HAVE_$3, test "[$have]_$1" = "yes")
   ])
 

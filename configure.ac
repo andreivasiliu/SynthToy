@@ -11,6 +11,7 @@ AC_ARG_WITH([winmm],
   [AC_HELP_STRING([--with-winmm],
     [enable support for Windows Multimedia API])],
   [], [with_winmm=check])
+AM_CONDITIONAL(HAVE_WINMM, false)
 
 # Checks for programs.
 AC_PROG_AWK
@@ -31,7 +32,8 @@ PKG_CHECK_MODULES(GMODULE, [gmodule-2.0])
 PKG_CHECK_MODULES(GTK, [gtk+-2.0])
 
 # Checks for optional pakages. The macro is defined in acinclude.m4.
-MSK_CHECK_OPTIONAL_MODULE([portaudio], [PortAudio], [PORTAUDIO], [portaudio])
+MSK_CHECK_OPTIONAL_MODULE([portaudio], [PortAudio], [PORTAUDIO],
+  [portaudio-2.0])
 MSK_CHECK_OPTIONAL_MODULE([jack], [JACK], [JACK], [jack])
 
 # Checks for libraries.
@@ -54,9 +56,9 @@ AC_CHECK_FUNCS([memset])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/msk0/Makefile
-                 src/mod-winmm/Makefile])
-#                src/mod-jack/Makefile
-#                src/mod-portaudio/Makefile
+                 src/mod-winmm/Makefile
+                 src/mod-jack/Makefile
+                 src/mod-portaudio/Makefile])
                  
 AC_OUTPUT
 
