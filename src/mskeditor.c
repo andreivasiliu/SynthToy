@@ -337,12 +337,16 @@ void draw_connections(cairo_t *cr)
                 nr = g_list_index(dest_port->owner->out_ports, dest_port);
                 dest_gmport = &dest_gmod->out_ports[nr];
                 
-                cairo_move_to(cr,
-                              gmod->x + gmport->pos_x + 0.5,
-                              gmod->y + gmport->pos_y + 0.5);
-                cairo_line_to(cr,
-                              dest_gmod->x + dest_gmport->pos_x + 0.5,
-                              dest_gmod->y + dest_gmport->pos_y + 0.5);
+	        long src_x = gmod->x + gmport->pos_x + 0.5;
+	        long src_y = gmod->y + gmport->pos_y + 0.5;
+		long dest_x = dest_gmod->x + dest_gmport->pos_x + 0.5;
+	        long dest_y = dest_gmod->y + dest_gmport->pos_y + 0.5;
+	        
+                cairo_move_to(cr, src_x, src_y);
+                cairo_curve_to(cr,
+			       src_x - 20, src_y,
+			       dest_x + 20, dest_y,
+			       dest_x, dest_y);
                 cairo_set_source_rgb(cr, 1, 0.8, 0.8);
                 cairo_set_line_width(cr, 1);
                 cairo_stroke(cr);
