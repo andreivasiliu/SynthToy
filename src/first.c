@@ -11,7 +11,7 @@
 
 extern void paint_keyboard(GtkWidget *widget);
 
-GtkWidget *left_osc, *right_osc, *virkb, *vscale_pw, *vscale_mw;
+GtkWidget *left_osc, *virkb, *vscale_pw, *vscale_mw;
 #ifdef HAVE_JACK
 void *jack_instance;
 #else
@@ -86,7 +86,6 @@ G_MODULE_EXPORT void on_drawingarea3_expose_event(GtkObject *object, GdkEventExp
 gboolean periodic_refresh(gpointer instance)
 {
     gtk_widget_queue_draw(GTK_WIDGET(left_osc));
-    gtk_widget_queue_draw(GTK_WIDGET(right_osc));
     
     return TRUE;
 }
@@ -125,7 +124,6 @@ int main(int argc, char *argv[])
     
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
     left_osc = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea1"));
-    right_osc = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea2"));
     virkb = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea3"));
     vscale_pw = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_pw"));
     vscale_mw = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_mw"));

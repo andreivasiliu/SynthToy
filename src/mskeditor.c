@@ -12,9 +12,27 @@
 
 /* WARNING: This code might be abusing a bug in Pango. */
 
+/* WARNING 2: The majority of this code will eventually be rewritten.
+ * This is just a quick-and-dirty implementation, to help with tests.
+ */
+
 cairo_surface_t *surface;
 
 typedef struct _GraphicalModule GraphicalModule;
+typedef struct _GMPort GMPort;
+
+struct _GMPort
+{
+    MskPort *port;
+    
+    /* Port's position on the module. */
+    int pos_x;
+    int pos_y;
+    
+    /* Destination. */
+    GraphicalModule *dest_gmod;
+    int dest_port_nr;
+};
 
 struct _GraphicalModule
 {
@@ -26,9 +44,10 @@ struct _GraphicalModule
     long width;
     long height;
     
-    int dragged;
-    int drag_x;
-    int drag_y;
+    GMPort *in_ports;
+    GMPort *out_ports;
+    int in_ports_nr;
+    int out_ports_nr;
 };
 
 
@@ -38,71 +57,21 @@ GraphicalModule *dragged_module;
 int drag_grip_x;
 int drag_grip_y;
 
-cairo_surface_t *create_my_thing()
-{
-    int width = 60, height = 45;
-    int l_width, l_height;
-    
-    
-    cairo_surface_t *surface;
-    cairo_t *cr;
-    PangoLayout *p_layout;
-    PangoFontDescription *p_font_desc;
-    
-    surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-    
-    cr = cairo_create(surface);
-    
-    cairo_set_source_rgb(cr, 0, 0, 0);
-    cairo_paint(cr);
-    
-    cairo_set_line_width(cr, 1);
-    
-    cairo_rectangle(cr, 0.5, 0.5, width - 1, height - 1);
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    cairo_stroke(cr);
-    
-    cairo_rectangle(cr, 1.5, 1.5, width - 3, height - 3);
-    cairo_set_source_rgb(cr, 0, 0, 1);
-    cairo_stroke(cr);
-    
-    cairo_rectangle(cr, 2.5, 2.5, width - 5, height - 5);
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    cairo_stroke(cr);
-    
-    p_layout = pango_cairo_create_layout(cr);
-    p_font_desc = pango_font_description_from_string("Sans 8");
-    pango_layout_set_font_description(p_layout, p_font_desc);
-    pango_font_description_free(p_font_desc);
-    /* TRANSLATORS: This will be shown inside a small box, as a test.
-     * Nothing more to it. */
-    pango_layout_set_text(p_layout, gettext("Hello!"), -1);
-    
-    pango_layout_get_pixel_size(p_layout, &l_width, &l_height);
-    g_print("%d/%d\n", l_width, l_height);
-    
-    cairo_move_to(cr, width / 2 - l_width / 2, height / 2 - l_height / 2);
-    cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
-    pango_cairo_show_layout(cr, p_layout);
-    
-    g_object_unref(p_layout);
-    cairo_destroy(cr);
-    
-    return surface;
-}
-
 
 void draw_module(MskModule *mod, long x, long y)
 {
     GraphicalModule *gmod;
     PangoContext *context;
     PangoFontMap *font_map;
-    PangoLayout *title;
+    PangoLayout *title, *port;
     PangoFontDescription *font_desc;
     cairo_surface_t *surface;
     cairo_t *cr;
-    int height, width;
+    int height, width, current_height;
     int surface_height, surface_width;
+    GList *ports_left = NULL, *ports_right = NULL;
+    GList *iter_left, *iter_right;
+    GMPort *gmport_left, *gmport_right;
     
     gmod = g_new0(GraphicalModule, 1);
     
@@ -122,7 +91,6 @@ void draw_module(MskModule *mod, long x, long y)
     title = pango_layout_new(context);
     font_desc = pango_font_description_from_string("Sans 8");
     pango_layout_set_font_description(title, font_desc);
-    pango_font_description_free(font_desc);
     
     pango_layout_set_text(title, mod->name, -1);
     
@@ -134,8 +102,65 @@ void draw_module(MskModule *mod, long x, long y)
     /* Separator line */
     surface_height += 3;
     
-    /* Let's say, space for some ports */
-    surface_height += height*2;
+    /* Prepare ports. */
+    gmod->in_ports_nr = g_list_length(mod->in_ports);
+    gmod->out_ports_nr = g_list_length(mod->out_ports);
+    gmod->in_ports = g_new0(GMPort, gmod->in_ports_nr);
+    gmod->out_ports = g_new0(GMPort, gmod->out_ports_nr);
+    
+    /* Ports */
+    iter_left = mod->in_ports;
+    iter_right = mod->out_ports;
+    gmport_left = gmod->in_ports;
+    
+    while ( iter_left || iter_right )
+    {
+        MskPort *mport;
+        int left_height = 0, left_width = 0;
+        int right_height = 0, right_width = 0;
+        
+        if ( iter_left )
+        {
+            mport = iter_left->data;
+            
+            port = pango_layout_new(context);
+            pango_layout_set_font_description(port, font_desc);
+            pango_layout_set_text(port, mport->name, -1);
+            pango_layout_get_pixel_size(port, &left_width, &left_height);
+            left_width += 8;
+            left_height = MAX(left_height, 7);
+            
+            gmport_left->port = mport;
+            
+            ports_left = g_list_append(ports_left, port);
+            iter_left = g_list_next(iter_left);
+            gmport_left++;
+        }
+        
+        if ( iter_right )
+        {
+            mport = iter_right->data;
+            
+            port = pango_layout_new(context);
+            pango_layout_set_font_description(port, font_desc);
+            pango_layout_set_text(port, mport->name, -1);
+            pango_layout_get_pixel_size(port, &right_width, &right_height);
+            right_width += 8;
+            right_height = MAX(right_height, 7);
+            
+            ports_right = g_list_append(ports_right, port);
+            iter_right = g_list_next(iter_right);
+        }
+        
+        surface_height += MAX(left_height, right_height);
+        surface_width = MAX(surface_width,
+                            left_width + right_width + 6 + 6);
+    }
+    
+//    /* Let's say, space for some ports */
+//    surface_height += height*2;
+    
+    pango_font_description_free(font_desc);
     
     gmod->width = surface_width;
     gmod->height = surface_height;
@@ -147,6 +172,8 @@ void draw_module(MskModule *mod, long x, long y)
                                          surface_width, surface_height);
     
     cr = cairo_create(surface);
+    
+    current_height = 0;
     
     /* Paint the background */
     cairo_set_source_rgb(cr, 0, 0, 0);
@@ -167,19 +194,89 @@ void draw_module(MskModule *mod, long x, long y)
     cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
     cairo_stroke(cr);
     
+    current_height += 3;
+    
     /* Paint the title */
-    cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+    cairo_set_source_rgb(cr, 1, 1, 1);
     
     pango_layout_get_pixel_size(title, &width, &height);
     cairo_move_to(cr, (surface_width - width) / 2, 4);
     pango_cairo_show_layout(cr, title);
     
-    /* Paint the separator */
+    current_height += height;
     
+    /* Paint the separator */
     cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
     cairo_move_to(cr, 3, 4.5 + height);
     cairo_line_to(cr, surface_width - 3, 4.5 + height);
     cairo_stroke(cr);
+    
+    current_height += 3;
+    
+    /* Paint the ports */
+    iter_left = ports_left;
+    iter_right = ports_right;
+    gmport_left = gmod->in_ports;
+    gmport_right = gmod->out_ports;
+    
+    while ( iter_left || iter_right )
+    {
+        int left_width = 0, right_width = 0;
+        int left_height = 0, right_height = 0;
+        
+        if ( iter_left )
+        {
+            port = iter_left->data;
+            pango_layout_get_pixel_size(port, &left_width, &left_height);
+            
+            /* Paint a little box. */
+            cairo_set_source_rgb(cr, 1, 0, 0);
+            cairo_rectangle(cr, 5, current_height + left_height/2-2,
+                            5, 5);
+            cairo_fill(cr);
+            
+            /* Remember the box's position. */
+            gmport_left->pos_x = 7;
+            gmport_left->pos_y = current_height + left_height/2;
+            
+            /* Paint the port name. */
+            cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+            cairo_move_to(cr, 3+8+1, current_height);
+            pango_cairo_show_layout(cr, port);
+            
+            left_height = MAX(left_height, 7);
+            iter_left = g_list_next(iter_left);
+            gmport_left++;
+        }
+        
+        if ( iter_right )
+        {
+            port = iter_right->data;
+            pango_layout_get_pixel_size(port, &right_width, &right_height);
+            
+            /* Paint a little box. */
+            cairo_set_source_rgb(cr, 0, 0, 1);
+            cairo_rectangle(cr, surface_width - 10,
+                            current_height + right_height/2-2,
+                            5, 5);
+            cairo_fill(cr);
+            
+            /* Remember the box's position. */
+            gmport_right->pos_x = surface_width - 8;
+            gmport_right->pos_y = current_height + right_height/2;
+            
+            /* Paint the port name. */
+            cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+            cairo_move_to(cr, surface_width-3-8-right_width, current_height);
+            pango_cairo_show_layout(cr, port);
+            
+            right_height = MAX(right_height, 7);
+            iter_right = g_list_next(iter_right);
+            gmport_right++;
+        }
+        
+        current_height += MAX(left_height, right_height);
+    }
     
     cairo_destroy(cr);
     
@@ -192,13 +289,73 @@ void draw_module(MskModule *mod, long x, long y)
 }
 
 
+GraphicalModule *find_gmod(MskModule *mod)
+{
+    GList *item;
+    
+    for ( item = graphical_modules; item; item = item->next )
+    {
+        GraphicalModule *gmod = item->data;
+        
+        if ( gmod->mod == mod )
+            return gmod;
+    }
+    
+    return NULL;
+}
+
+
+void draw_connections(cairo_t *cr)
+{
+    GList *item;
+    GraphicalModule *gmod, *dest_gmod;
+    GMPort *gmport, *dest_gmport;
+    int i;
+    
+    /* We draw from an in-port to an out-port... because an in-port
+     * has only one connection to it. */
+    
+    for ( item = graphical_modules; item; item = item->next )
+    {
+        gmod = item->data;
+        
+        gmport = gmod->in_ports;
+        for ( i = 0; i < gmod->in_ports_nr; i++, gmport++ )
+        {
+            MskPort *dest_port = gmport->port->input.connection;
+            
+            if ( dest_port )
+            {
+                int nr;
+                
+                /* Find the destination. */
+                dest_gmod = find_gmod(dest_port->owner);
+                
+                if ( !dest_gmod )
+                    continue;
+                
+                nr = g_list_index(dest_port->owner->out_ports, dest_port);
+                dest_gmport = &dest_gmod->out_ports[nr];
+                
+                cairo_move_to(cr,
+                              gmod->x + gmport->pos_x + 0.5,
+                              gmod->y + gmport->pos_y + 0.5);
+                cairo_line_to(cr,
+                              dest_gmod->x + dest_gmport->pos_x + 0.5,
+                              dest_gmod->y + dest_gmport->pos_y + 0.5);
+                cairo_set_source_rgb(cr, 1, 0.8, 0.8);
+                cairo_set_line_width(cr, 1);
+                cairo_stroke(cr);
+            }
+        }
+    }
+}
+
+
 void paint_editor(GtkWidget *widget)
 {
     GList *item;
     cairo_t *cr;
-    
-//    if ( !surface )
-//        surface = create_my_thing();
     
     cr = gdk_cairo_create(widget->window);
     
@@ -217,13 +374,15 @@ void paint_editor(GtkWidget *widget)
             cairo_paint(cr);
     }
     
+    draw_connections(cr);
+    
     cairo_destroy(cr);
 }
 
 
 G_MODULE_EXPORT void
     on_drawingarea2_expose_event(GtkObject *object,
-                                                  GdkEventExpose *event)
+                                 GdkEventExpose *event)
 {
     paint_editor(GTK_WIDGET(object));
 }
@@ -253,6 +412,7 @@ G_MODULE_EXPORT gboolean
         if ( dragged_module->y < 0 )
             dragged_module->y = 0;
         
+        /* This causes redraws even when nothing moved.. :( */
         gtk_widget_queue_draw(GTK_WIDGET(object));
         
         return TRUE;
@@ -303,6 +463,9 @@ G_MODULE_EXPORT gboolean
 G_MODULE_EXPORT void on_drawingarea2_button_release_event(GtkObject *object)
 {
     if ( dragged_module )
+    {
         dragged_module = NULL;
+        gtk_widget_queue_draw(GTK_WIDGET(object));
+    }
 }
 

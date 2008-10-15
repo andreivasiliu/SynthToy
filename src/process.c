@@ -39,12 +39,13 @@ void init_channel(int ch)
     output = msk_output_create(cont, audio1, MSK_AUDIO_DATA);
     voice[ch].freq_add = msk_addmul_create(cont);
     
-    draw_module(voice[ch].osc, 340, 30);
-    draw_module(voice[ch].lfo, 370, 145);
-    draw_module(voice[ch].osc_freq, 85, 30);
-    draw_module(voice[ch].lfo_freq, 100, 155);
-    draw_module(voice[ch].amp, 215, 35);
-    draw_module(voice[ch].freq_add, 220, 140);
+    draw_module(voice[ch].osc, 285, 90);
+    draw_module(voice[ch].lfo, 140, 150);
+    draw_module(voice[ch].osc_freq, 40, 50);
+    draw_module(voice[ch].lfo_freq, 35, 150);
+    draw_module(voice[ch].amp, 425, 90);
+    draw_module(voice[ch].freq_add, 150, 50);
+    draw_module(output, 540, 90);
     
     msk_connect_ports(voice[ch].osc_freq, "output", voice[ch].freq_add, "input");
     msk_connect_ports(voice[ch].freq_add, "output", voice[ch].osc, "frequency");
