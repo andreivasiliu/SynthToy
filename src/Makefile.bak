@@ -4,7 +4,8 @@ L_FLAGS = `pkg-config --libs gtk+-2.0 gthread-2.0`
 BINEXT = .exe
 MODEXT = .dll
 
-OBJ1 = first.o events.o virkb.o process.o mskeditor.o msk0$(MODEXT) modwinmm$(MODEXT)
+OBJ1 = first.o events.o virkb.o process.o gmskeditor.o gmskmenu.o  \
+       msk0$(MODEXT) modwinmm$(MODEXT)
 
 
 
@@ -13,7 +14,7 @@ all: first.ui first${BINEXT}
 first$(BINEXT): ${OBJ1}
 	gcc -o $@ ${OBJ1} ${L_FLAGS}
 
-%.o: %.c
+%.o: %.c header.h
 	gcc -c -g -Wall $< ${C_FLAGS}
 
 first.ui: first.glade

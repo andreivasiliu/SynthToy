@@ -7,6 +7,7 @@
 
 #include <libintl.h>
 
+#include "header.h"
 #include "msk0/msk0.h"
 
 
@@ -337,10 +338,10 @@ void draw_connections(cairo_t *cr)
                 nr = g_list_index(dest_port->owner->out_ports, dest_port);
                 dest_gmport = &dest_gmod->out_ports[nr];
                 
-	        long src_x = gmod->x + gmport->pos_x + 0.5;
-	        long src_y = gmod->y + gmport->pos_y + 0.5;
-		long dest_x = dest_gmod->x + dest_gmport->pos_x + 0.5;
-	        long dest_y = dest_gmod->y + dest_gmport->pos_y + 0.5;
+	        double src_x = gmod->x + gmport->pos_x + 0.5;
+	        double src_y = gmod->y + gmport->pos_y + 0.5;
+		double dest_x = dest_gmod->x + dest_gmport->pos_x + 0.5;
+	        double dest_y = dest_gmod->y + dest_gmport->pos_y + 0.5;
 	        
                 cairo_move_to(cr, src_x, src_y);
                 cairo_curve_to(cr,
@@ -433,6 +434,16 @@ G_MODULE_EXPORT gboolean
     GraphicalModule *gmod;
     GList *item;
     
+    if ( event->button == 3 )
+    {
+        gmsk_create_menu();
+        
+        gtk_menu_popup(GTK_MENU(gmsk_menu), NULL, NULL, NULL, NULL,
+                       event->button, event->time);
+        
+        return TRUE;
+    }
+    
     /* Only left mouse button can drag. */
     if ( event->button != 1 )
         return FALSE;
@@ -464,7 +475,9 @@ G_MODULE_EXPORT gboolean
     return FALSE;
 }
 
-G_MODULE_EXPORT void on_drawingarea2_button_release_event(GtkObject *object)
+G_MODULE_EXPORT void
+    on_drawingarea2_button_release_event(GtkObject *object,
+                                         GdkEventButton *event)
 {
     if ( dragged_module )
     {

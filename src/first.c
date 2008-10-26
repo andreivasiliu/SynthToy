@@ -56,11 +56,11 @@ void paint_array_to_widget(GtkWidget *widget, float *array, int length)
     cairo_save(cr);
     cairo_scale(cr, (float) width / (float) length, (float) height / 100.0f);
     
-    cairo_move_to(cr, 0, 50 + (array[0] * 25));
+    cairo_move_to(cr, 0, 50 + (array[0] * 25) - 0.5);
     
     for ( i = 1; i < length; i++ )
     {
-        cairo_line_to(cr, i, 50 + (array[i] * 25));
+        cairo_line_to(cr, i, 50 + (array[i] * 25) - 0.5);
     }
     
     cairo_restore(cr);
