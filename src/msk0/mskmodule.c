@@ -21,10 +21,11 @@ MskModule *msk_module_create(MskContainer *parent, gchar *name,
     mod->deactivate = deactivate;
     mod->state_size = state_size;
     
-    if ( mod->parent )
+    if ( parent )
     {
         mod->world = parent->module->world;
-        mod->parent->module_list = g_list_append(mod->parent->module_list, mod);
+        parent->module_list = g_list_append(parent->module_list, mod);
+        parent->module->prepared = FALSE;
     }
     
     mod->in_ports = mod->out_ports = mod->properties = NULL;
@@ -75,6 +76,19 @@ MskProperty *msk_module_get_property(MskModule *mod, gchar *prop_name)
 }
 
 
+void msk_disconnect_input(MskPort *in_port)
+{
+    MskPort *out_port;
+    
+    g_assert(in_port != NULL);
+    g_assert(in_port->input.connection != NULL);
+    
+    out_port = in_port->input.connection;
+    
+    in_port->input.connection = NULL;
+    out_port->output.connections = g_list_remove(out_port->output.connections, in_port);
+}
+
 // TODO: Find a proper way to do errors.
 
 void msk_connect_ports(MskModule *left, gchar *left_port_name,
@@ -95,18 +109,24 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
         g_error("An inexistent port was specified."); // TODO;
     }
     
+    // TODO: Check for same-container condition.
+    
+    /* No longer possible.
     if ( g_list_find(left_port->output.connections, right_port) )
     {
         g_error("Ports already connected.");
     }
+    */
     
     if ( right_port->input.connection )
     {
-        g_error("Destination port already connected.");
+        msk_disconnect_input(right_port);
     }
     
     left_port->output.connections = g_list_append(left_port->output.connections, right_port);
     right_port->input.connection = left_port;
+    
+    left_port->owner->parent->module->prepared = FALSE;
 }
 
 

@@ -21,6 +21,8 @@ struct _MskWorld
     gsize block_size;
     
     MskContainer *root;
+    
+    GMutex *lock_for_model;
 };
 
 

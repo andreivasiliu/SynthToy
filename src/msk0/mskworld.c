@@ -20,18 +20,21 @@ MskContainer *msk_world_create(gulong sample_rate, gsize block_size)
     world->root = msk_container_create(NULL);
     world->root->module->world = world;
     
+    world->lock_for_model = g_mutex_new();
+    
     return world->root;
 }
 
 
-void do_a_dfs(MskModule *mod, GList **process_order)
+void msk_prepare_module(MskModule *mod, GList **process_order)
 {
     GList *lport, *lconn;
     
     // TODO: Move it.
     extern void msk_prepare_container(MskContainer *container);
     
-    if ( mod->container )
+    /* Don't recurse further down if it was already prepared. */
+    if ( mod->container && !mod->prepared )
         msk_prepare_container(mod->container);
     
     for ( lport = mod->out_ports; lport; lport = lport->next )
@@ -51,7 +54,7 @@ void do_a_dfs(MskModule *mod, GList **process_order)
                 msk_prepare_container(linked_mod->parent);
             }
             else
-                do_a_dfs(linked_mod, process_order);
+                msk_prepare_module(linked_mod, process_order);
         }
     }
     
@@ -72,7 +75,7 @@ void msk_prepare_container(MskContainer *container)
         MskModule *mod = (MskModule*) lmod->data;
         
         if ( !mod->prepared )
-            do_a_dfs(mod, &container->process_order);
+            msk_prepare_module(mod, &container->process_order);
     }
 }
 
@@ -170,8 +173,95 @@ void msk_world_prepare(MskContainer *container)
 
 void msk_world_run(MskContainer *container)
 {
+    g_mutex_lock(container->module->world->lock_for_model);
+    
     container->module->process(container->module, 0, container->module->world->block_size, NULL);
     // ..
     
+    g_mutex_unlock(container->module->world->lock_for_model);
+}
+
+void msk_destroy_buffers_on_module(MskModule *mod)
+{
+    // TODO: move.
+    void msk_destroy_buffers_on_container(MskContainer *container);
+    
+    GList *lport;
+    
+    for ( lport = mod->in_ports; lport; lport = lport->next )
+    {
+        MskPort *port = (MskPort*) lport->data;
+        MskPort *linked_port = port->input.connection;
+        
+        if ( linked_port )
+        {
+            /* Do nothing. The buffer belongs to the linked output
+             * port. */
+        }
+        else
+        {
+            /* These unconnected ports still needed SOME values on
+             * those ports, so they have a kind of 'floating' buffer
+             * allocated for them. Destroy it. */
+            
+            if ( !port->buffer )
+                g_print("Wait, what?\n");
+            else
+                g_free(port->buffer);
+        }
+    }
+    
+    if ( mod->container )
+        msk_destroy_buffers_on_container(mod->container);
+    
+    for ( lport = mod->out_ports; lport; lport = lport->next )
+    {
+        MskPort *port = (MskPort*) lport->data;
+        
+        if ( port->output.hardlink )
+            ; // Do nothing.
+        else
+            g_free(port->buffer);
+    }
+}
+
+
+void msk_destroy_buffers_on_container(MskContainer *container)
+{
+    GList *lmod;
+    
+    for ( lmod = container->process_order; lmod; lmod = lmod->next )
+    {
+        MskModule *mod = lmod->data;
+        
+        msk_destroy_buffers_on_module(mod);
+    }
+}
+
+void msk_unprepare_container(MskContainer *container)
+{
+    GList *lmod;
+    
+    if ( container->process_order )
+        g_list_free(container->process_order);
+    
+    for ( lmod = container->module_list; lmod; lmod = lmod->next )
+    {
+        MskModule *mod = (MskModule*) lmod->data;
+        
+        if ( mod->container )
+            msk_unprepare_container(mod->container);
+        
+        mod->prepared = FALSE;
+    }
+}
+
+
+void msk_world_unprepare(MskContainer *container)
+{
+    container->module->deactivate(container->module, NULL);
+    
+    msk_destroy_buffers_on_module(container->module);
+    msk_unprepare_container(container);
 }
 

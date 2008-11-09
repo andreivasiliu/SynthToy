@@ -11,7 +11,7 @@
 
 extern void paint_keyboard(GtkWidget *widget);
 
-GtkWidget *left_osc, *virkb, *vscale_pw, *vscale_mw;
+GtkWidget *left_osc, *editor, *virkb, *vscale_pw, *vscale_mw;
 #ifdef HAVE_JACK
 void *jack_instance;
 #else
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
     GtkWidget	*window;
     char	*errmsg;
     
-//    g_thread_init(NULL);
+    g_thread_init(NULL);
 //    gdk_threads_init();
     
 #ifdef HAVE_JACK
@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
     
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
     left_osc = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea1"));
+    editor = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea2"));
     virkb = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea3"));
     vscale_pw = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_pw"));
     vscale_mw = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_mw"));

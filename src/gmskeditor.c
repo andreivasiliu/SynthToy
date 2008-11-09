@@ -24,6 +24,7 @@ typedef struct _GMPort GMPort;
 
 struct _GMPort
 {
+    GraphicalModule *owner;
     MskPort *port;
     
     /* Port's position on the module. */
@@ -58,6 +59,10 @@ GraphicalModule *dragged_module;
 int drag_grip_x;
 int drag_grip_y;
 
+GMPort *dragged_port;
+int dragged_port_is_output;
+int dragging_port_to_x;
+int dragging_port_to_y;
 
 void draw_module(MskModule *mod, long x, long y)
 {
@@ -113,6 +118,7 @@ void draw_module(MskModule *mod, long x, long y)
     iter_left = mod->in_ports;
     iter_right = mod->out_ports;
     gmport_left = gmod->in_ports;
+    gmport_right = gmod->out_ports;
     
     while ( iter_left || iter_right )
     {
@@ -131,6 +137,7 @@ void draw_module(MskModule *mod, long x, long y)
             left_width += 8;
             left_height = MAX(left_height, 7);
             
+            gmport_left->owner = gmod;
             gmport_left->port = mport;
             
             ports_left = g_list_append(ports_left, port);
@@ -148,6 +155,9 @@ void draw_module(MskModule *mod, long x, long y)
             pango_layout_get_pixel_size(port, &right_width, &right_height);
             right_width += 8;
             right_height = MAX(right_height, 7);
+            
+            gmport_right->owner = gmod;
+            gmport_right->port = mport;
             
             ports_right = g_list_append(ports_right, port);
             iter_right = g_list_next(iter_right);
@@ -381,7 +391,114 @@ void paint_editor(GtkWidget *widget)
     
     draw_connections(cr);
     
+    if ( dragged_port )
+    {
+        double dashes[] = { 5, 5 };
+        
+        /* Draw a bezier from the source. */
+        double src_x, src_y;
+        double dest_x, dest_y;
+        
+        src_x = dragged_port->owner->x + dragged_port->pos_x + 0.5;
+        src_y = dragged_port->owner->y + dragged_port->pos_y + 0.5;
+        dest_x = dragging_port_to_x + 0.5;
+        dest_y = dragging_port_to_y + 0.5;
+        
+        cairo_save(cr);
+        
+        cairo_move_to(cr, src_x, src_y);
+        if ( dragged_port_is_output )
+            cairo_curve_to(cr,
+                           src_x + 20, src_y,
+                           dest_x - 20, dest_y,
+                           dest_x, dest_y);
+        else
+            cairo_curve_to(cr,
+                           src_x - 20, src_y,
+                           dest_x + 20, dest_y,
+                           dest_x, dest_y);
+        cairo_set_source_rgb(cr, 1, 0.8, 0.8);
+        cairo_set_dash(cr, dashes, 2, 0);
+        cairo_set_line_width(cr, 1);
+        cairo_stroke(cr);
+        
+        cairo_restore(cr);
+    }
+    
     cairo_destroy(cr);
+}
+
+
+GraphicalModule *get_gmod_at(int x, int y)
+{
+    GraphicalModule *gmod;
+    GList *item;
+    
+    /* The last one painted is the first one reachable. */
+    item = g_list_last(graphical_modules);
+    while ( item )
+    {
+        gmod = item->data;
+        
+        if ( x >= gmod->x && x < gmod->x + gmod->width &&
+             y >= gmod->y && y < gmod->y + gmod->height )
+            return gmod;
+        
+        item = item->prev;
+    }
+    
+    return NULL;
+}
+
+
+GMPort *get_gmport_at(GraphicalModule *gmod, int x, int y, int *type)
+{
+    int i;
+    
+    for ( i = 0; i < gmod->in_ports_nr; i++ )
+    {
+        GMPort *gmport = &gmod->in_ports[i];
+        
+        if ( x > gmport->pos_x - 4 && x < gmport->pos_x + 4 &&
+             y > gmport->pos_y - 4 && y < gmport->pos_y + 4 )
+        {
+            if ( type )
+                *type = 1;
+            
+            return gmport;
+        }
+    }
+    
+    for ( i = 0; i < gmod->out_ports_nr; i++ )
+    {
+        GMPort *gmport = &gmod->out_ports[i];
+        
+        if ( x > gmport->pos_x - 4 && x < gmport->pos_x + 4 &&
+             y > gmport->pos_y - 4 && y < gmport->pos_y + 4 )
+        {
+            if ( type )
+                *type = 2;
+            
+            return gmport;
+        }
+    }
+    
+    if ( type )
+        *type = 0;
+    
+    return NULL;
+}
+
+void gmsk_connect_gmports(GMPort *output, GMPort *input)
+{
+    GMutex *mutex = output->owner->mod->world->lock_for_model;
+    
+    g_mutex_lock(mutex);
+    
+    msk_connect_ports(output->owner->mod, output->port->name,
+                      input->owner->mod, input->port->name);
+    
+    g_mutex_unlock(mutex);
 }
 
 
@@ -399,13 +516,13 @@ G_MODULE_EXPORT gboolean
 {
     if ( dragged_module )
     {
-        /* I wrote this due to lack of inspiration... How else do I round it? */
         dragged_module->x = event->x - drag_grip_x;
         dragged_module->y = event->y - drag_grip_y;
         
         /* Unless 'shift' is pressed, snap to a 5x5 grid. */
         if ( !(event->state & GDK_SHIFT_MASK) )
         {
+            /* I wrote this due to lack of inspiration... How else do I round it? */
             dragged_module->x = ((dragged_module->x + 2) -
                                  (dragged_module->x + 2) % 5);
             dragged_module->y = ((dragged_module->y + 2) -
@@ -423,6 +540,14 @@ G_MODULE_EXPORT gboolean
         return TRUE;
     }
     
+    if ( dragged_port )
+    {
+        dragging_port_to_x = event->x;
+        dragging_port_to_y = event->y;
+        
+        gtk_widget_queue_draw(GTK_WIDGET(object));
+    }
+    
     return FALSE;
 }
 
@@ -432,13 +557,14 @@ G_MODULE_EXPORT gboolean
                                        GdkEventButton *event)
 {
     GraphicalModule *gmod;
-    GList *item;
     
     if ( event->button == 3 )
     {
-        gmsk_create_menu();
+        GtkWidget *menu;
         
-        gtk_menu_popup(GTK_MENU(gmsk_menu), NULL, NULL, NULL, NULL,
+        menu = gmsk_create_menu();
+        
+        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
                        event->button, event->time);
         
         return TRUE;
@@ -449,27 +575,33 @@ G_MODULE_EXPORT gboolean
         return FALSE;
     
     /* The last one painted is the first one reachable. */
-    item = g_list_last(graphical_modules);
-    while ( item )
+    gmod = get_gmod_at(event->x, event->y);
+    if ( gmod )
     {
-        gmod = item->data;
+        GMPort *gmport;
+        int gmport_type;
         
-        if ( event->x >= gmod->x && event->x < gmod->x + gmod->width &&
-             event->y >= gmod->y && event->y < gmod->y + gmod->height )
+        /* Did we click on the module, or on a port of the module? */
+        gmport = get_gmport_at(gmod, event->x - gmod->x,
+                               event->y - gmod->y, &gmport_type);
+        if ( gmport )
         {
-            dragged_module = gmod;
-            drag_grip_x = event->x - gmod->x;
-            drag_grip_y = event->y - gmod->y;
-            
-            graphical_modules = g_list_remove(graphical_modules, gmod);
-            graphical_modules = g_list_append(graphical_modules, gmod);
-            
-            gtk_widget_queue_draw(GTK_WIDGET(object));
+            dragged_port = gmport;
+            dragged_port_is_output = (gmport_type == 2);
             
             return TRUE;
         }
         
-        item = item->prev;
+        dragged_module = gmod;
+        drag_grip_x = event->x - gmod->x;
+        drag_grip_y = event->y - gmod->y;
+        
+        graphical_modules = g_list_remove(graphical_modules, gmod);
+        graphical_modules = g_list_append(graphical_modules, gmod);
+        
+        gtk_widget_queue_draw(GTK_WIDGET(object));
+        
+        return TRUE;
     }
     
     return FALSE;
@@ -482,6 +614,37 @@ G_MODULE_EXPORT void
     if ( dragged_module )
     {
         dragged_module = NULL;
+        gtk_widget_queue_draw(GTK_WIDGET(object));
+    }
+    
+    if ( dragged_port )
+    {
+        GraphicalModule *gmod;
+        GMPort *gmport;
+        int type;
+        
+        gmod = get_gmod_at(event->x, event->y);
+        
+        if ( gmod )
+        {
+            gmport = get_gmport_at(gmod, event->x - gmod->x,
+                                   event->y - gmod->y, &type);
+            
+            if ( gmport )
+            {
+                g_print("Dropped into a GMPort!\n");
+                
+                if ( dragged_port_is_output && type == 1 )
+                    gmsk_connect_gmports(dragged_port, gmport);
+                else if ( !dragged_port_is_output && type == 2 )
+                    gmsk_connect_gmports(gmport, dragged_port);
+                
+                g_print("Source: %s.\n", dragged_port->port ? dragged_port->port->name : "-");
+                g_print("Dest: %s.\n", gmport->port ? gmport->port->name : "-");
+            }
+        }
+        
+        dragged_port = NULL;
         gtk_widget_queue_draw(GTK_WIDGET(object));
     }
 }
