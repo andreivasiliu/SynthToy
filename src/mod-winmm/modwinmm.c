@@ -156,16 +156,18 @@ void modwinmm_fini(void *state)
 void modwinmm_activate(void *state)
 {
     ModWinmmState *mw_state = (ModWinmmState*) state;
-    
+    int midi_dev;
     
     /* MIDI In */
-    if ( midiInGetNumDevs() > 0 )
+    for ( midi_dev = 0; midi_dev < midiInGetNumDevs(); midi_dev++ )
     {
-        midiInOpen(&mw_state->midi_in, 0, (DWORD_PTR) midi_func,
-                   (DWORD_PTR) mw_state, CALLBACK_FUNCTION);
+        midiInOpen(&mw_state->midi_in, midi_dev,
+                   (DWORD_PTR) midi_func, (DWORD_PTR) mw_state,
+                   CALLBACK_FUNCTION);
         midiInStart(mw_state->midi_in);
     }
-    else
+    
+    if ( midi_dev == 0 )
     {
         puts("No MIDI device found, therefore no MIDI support for you.");
         fflush(stdout);
