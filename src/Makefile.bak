@@ -9,9 +9,9 @@ OBJ1 = first.o events.o virkb.o process.o gmskeditor.o gmskmenu.o  \
 
 
 
-all: first.ui first${BINEXT}
+all: first.ui synthtoy${BINEXT}
 
-first$(BINEXT): ${OBJ1}
+synthtoy$(BINEXT): ${OBJ1}
 	gcc -o $@ ${OBJ1} ${L_FLAGS}
 
 %.o: %.c header.h
