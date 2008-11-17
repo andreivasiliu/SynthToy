@@ -7,52 +7,59 @@
 #define MSK_SIMPLE_CONTAINER 1
 
 
-// This obviously needs to use a non-null state if the container itself is being
-// polyphoned by its parent.
-
-void msk_container_activate(MskModule *self, void *state)
+void msk_container_activate(MskContainer *self)
 {
-    MskContainer *container = self->container;
     GList *item;
-    int i = 0;
     
-    container->module_states = g_new0(gpointer, g_list_length(container->process_order));
-    
-    for ( item = container->process_order; item; item = item->next, i++ )
+    for ( item = self->module_list; item; item = item->next )
     {
         MskModule *mod = item->data;
         
-        if ( mod->state_size )
-            container->module_states[i] = g_malloc(mod->state_size);
-        else
-            container->module_states[i] = NULL;
+        msk_module_activate(mod);
         
-        if ( mod->activate )
-            mod->activate(mod, container->module_states[i]);
+        if ( mod->container )
+            msk_container_activate(mod->container);
     }
 }
 
 
-void msk_container_deactivate(MskModule *self, void *state)
+void msk_container_deactivate(MskContainer *self)
 {
-    
-    // ...
-    
-}
-
-
-void msk_container_process(MskModule *self, int start, int nframes, void *state)
-{
-    MskContainer *container = self->container;
     GList *item;
-    int i = 0;
     
-    for ( item = container->process_order; item; item = item->next, i++ )
+    for ( item = self->module_list; item; item = item->next )
     {
         MskModule *mod = item->data;
         
-        if ( mod->process )
-            mod->process(mod, start, nframes, container->module_states[i]);
+        msk_module_deactivate(mod);
+        
+        if ( mod->container )
+            msk_container_deactivate(mod->container);
+    }
+}
+
+
+void msk_container_process(MskContainer *self, int start, int nframes, guint voice)
+{
+//    MskContainer *container = self->container;
+    GList *item;
+    int v;
+    
+    for ( v = 0; v < self->voices; v++ )
+    {
+        for ( item = self->process_order; item; item = item->next )
+        {
+            MskModule *mod = item->data;
+            
+            if ( mod->process )
+            {
+                void *state = g_ptr_array_index(mod->state, voice * self->voice_size + v);
+                mod->process(mod, start, nframes, state);
+            }
+            
+            if ( mod->container )
+                msk_container_process(mod->container, start, nframes, v);
+        }
     }
 }
 
@@ -64,18 +71,73 @@ MskContainer *msk_container_create(MskContainer *parent)
     
     // Create the shell/wrapper/outside/whatever module.
     module = msk_module_create(parent, "container",
-                               msk_container_process, // ?
-                               msk_container_activate,
-                               msk_container_deactivate,
+                               NULL,
+//                               msk_container_process, // ?
+                               NULL,
+                               NULL,
                                0);
     
     container = g_new0(MskContainer, 1);
     container->module = module;
+    container->voices = 1;
     module->container = container;
     
+    if ( parent )
+        container->voice_size = parent->voices * parent->voice_size;
+    else
+        container->voice_size = 1;
+    
     msk_add_integer_property(module, "type", MSK_SIMPLE_CONTAINER);
+    // needs at least one more property: voices
     
     return container;
+}
+
+
+void msk_sort_module(MskModule *mod, GList **process_order)
+{
+    GList *lport;
+    
+    for ( lport = mod->in_ports; lport; lport = lport->next )
+    {
+        MskPort *port = (MskPort*) lport->data;
+        MskModule *linked_mod;
+        
+        if ( !port->input.connection )
+            continue;
+        
+        linked_mod = port->input.connection->owner;
+        
+        if ( !linked_mod->prepared )
+            msk_sort_module(linked_mod, process_order);
+    }
+    
+    // TODO: change
+    *process_order = g_list_append(*process_order, mod);
+    mod->prepared = TRUE;
+}
+
+/* Attempt to do a topological sort. */
+gboolean msk_container_sort(MskContainer *container)
+{
+    GList *process_order = NULL;
+    GList *lmod;
+    
+    for ( lmod = container->module_list; lmod; lmod = lmod->next )
+        ((MskModule *)lmod->data)->prepared = FALSE;
+    
+    for ( lmod = container->module_list; lmod; lmod = lmod->next )
+    {
+        MskModule *mod = lmod->data;
+        
+        if ( !mod->prepared )
+            msk_sort_module(mod, &process_order);
+    }
+    
+    if ( container->process_order )
+        g_list_free(container->process_order);
+    container->process_order = process_order;
+    return TRUE;
 }
 
 

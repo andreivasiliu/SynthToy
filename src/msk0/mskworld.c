@@ -146,7 +146,7 @@ void msk_create_buffers_on_container(MskContainer *container)
 }
 
 
-void list_order(GList *items, gint indent)
+void print_list_order(GList *items, gint indent)
 {
     GList *item;
     
@@ -156,26 +156,26 @@ void list_order(GList *items, gint indent)
         
         g_print(" %*s- %s\n", indent, "", mod->name);
         if ( mod->container )
-            list_order(mod->container->process_order, indent + 2);
+            print_list_order(mod->container->process_order, indent + 2);
     }
     
 }
 
 void msk_world_prepare(MskContainer *container)
 {
-    msk_prepare_container(container);
     msk_create_buffers_on_module(container->module);
     
-    list_order(container->process_order, 0);
+    print_list_order(container->process_order, 0);
     
-    container->module->activate(container->module, NULL);
+    msk_container_activate(container);
 }
 
 void msk_world_run(MskContainer *container)
 {
     g_mutex_lock(container->module->world->lock_for_model);
     
-    container->module->process(container->module, 0, container->module->world->block_size, NULL);
+    msk_container_process(container, 0, container->module->world->block_size, 0);
+    //container->module->process(container->module, 0, container->module->world->block_size, NULL);
     // ..
     
     g_mutex_unlock(container->module->world->lock_for_model);
@@ -260,7 +260,7 @@ void msk_unprepare_container(MskContainer *container)
 void msk_world_unprepare(MskContainer *container)
 {
     container->module->deactivate(container->module, NULL);
-    
+   //// 
     msk_destroy_buffers_on_module(container->module);
     msk_unprepare_container(container);
 }

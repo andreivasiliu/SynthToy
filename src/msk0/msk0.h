@@ -38,9 +38,11 @@ struct _MskContainer
     
     GList *module_list;
     
+    guint voices;
+    guint voice_size;
+    
     /* Runtime information. */
     GList *process_order;
-    void **module_states;
 };
 
 
@@ -83,7 +85,7 @@ struct _MskModule
     GList *out_ports;
     GList *properties;
     
-    void *state;
+    GPtrArray *state;
     gsize state_size;
     
     gboolean prepared;
@@ -99,6 +101,9 @@ struct _MskProperty
 
 
 /*** Functions ***/
+void msk_module_activate(MskModule *mod);
+void msk_module_deactivate(MskModule *mod);
+
 void msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value);
 
 gconstpointer msk_module_get_property_buffer(MskModule *mod, gchar *name);
@@ -115,7 +120,15 @@ MskModule *msk_output_create(MskContainer *parent, gchar *name, guint type);
 MskModule *msk_constant_create(MskContainer *parent);
 MskModule *msk_oscillator_create(MskContainer *parent);
 MskModule *msk_addmul_create(MskContainer *parent);
+MskModule *msk_add_create(MskContainer *parent);
 
 MskContainer *msk_world_create(gulong sample_rate, gsize block_size);
 void msk_world_prepare(MskContainer *container);
 void msk_world_run(MskContainer *container);
+
+
+// TODO: delete
+void msk_create_buffers_on_module(MskModule *module);
+void msk_destroy_buffers_on_module(MskModule *module);
+void msk_container_activate(MskContainer *self);
+void msk_container_deactivate(MskContainer *self);

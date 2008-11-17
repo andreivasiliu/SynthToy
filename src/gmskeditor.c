@@ -17,6 +17,8 @@
  * This is just a quick-and-dirty implementation, to help with tests.
  */
 
+extern MskContainer *cont;
+
 cairo_surface_t *surface;
 
 typedef struct _GraphicalModule GraphicalModule;
@@ -495,8 +497,12 @@ void gmsk_connect_gmports(GMPort *output, GMPort *input)
     
     g_mutex_lock(mutex);
     
+    msk_container_deactivate(cont);
+    msk_destroy_buffers_on_module(cont->module);
     msk_connect_ports(output->owner->mod, output->port->name,
                       input->owner->mod, input->port->name);
+    msk_create_buffers_on_module(cont->module);
+    msk_container_activate(cont);
     
     g_mutex_unlock(mutex);
 }

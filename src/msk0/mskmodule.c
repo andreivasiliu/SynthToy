@@ -26,11 +26,62 @@ MskModule *msk_module_create(MskContainer *parent, gchar *name,
         mod->world = parent->module->world;
         parent->module_list = g_list_append(parent->module_list, mod);
         parent->module->prepared = FALSE;
+        
+        // TODO: A simple prepend will do too.
+        msk_container_sort(parent);
     }
     
     mod->in_ports = mod->out_ports = mod->properties = NULL;
     
     return mod;
+}
+
+
+void msk_module_activate(MskModule *mod)
+{
+    int voices = mod->parent->voices * mod->parent->voice_size;
+    int v;
+    
+    g_assert(mod->state == NULL);
+    mod->state = g_ptr_array_new();
+    
+    for ( v = 0; v < voices; v++ )
+    {
+        void *state;
+        
+        if ( mod->state_size )
+            state = g_malloc(mod->state_size);
+        else
+            state = NULL;
+        
+        if ( mod->activate )
+            mod->activate(mod, state);
+        
+        g_ptr_array_add(mod->state, state);
+    }
+}
+
+
+void msk_module_deactivate(MskModule *mod)
+{
+    int voices = mod->parent->voices * mod->parent->voice_size;
+    int v;
+    
+    g_assert(mod->state != NULL);
+    
+    for ( v = 0; v < voices; v++ )
+    {
+        void *state = g_ptr_array_index(mod->state, v);
+        
+        if ( mod->deactivate )
+            mod->activate(mod, state);
+        
+        if ( state )
+            g_free(state);
+    }
+    
+    g_ptr_array_free(mod->state, TRUE);
+    mod->state = NULL;
 }
 
 
@@ -126,7 +177,8 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
     left_port->output.connections = g_list_append(left_port->output.connections, right_port);
     right_port->input.connection = left_port;
     
-    left_port->owner->parent->module->prepared = FALSE;
+    // TODO: check if it succeeded
+    msk_container_sort(left->parent);
 }
 
 
