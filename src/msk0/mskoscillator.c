@@ -80,3 +80,29 @@ MskModule *msk_oscillator_create(MskContainer *parent)
     return mod;
 }
 
+
+void msk_pitchtofrequency_process(MskModule *self, int start, int frames, void *state)
+{
+    const float * const pitch = msk_module_get_input_buffer(self, "pitch");
+    float *freq = msk_module_get_output_buffer(self, "frequency");
+    int i;
+    
+    for ( i = start; i < start + frames; i++ )
+        freq[i] = exp2f((pitch[i]-69.0f)/12.0f)*440.0f;
+}
+
+MskModule *msk_pitchtofrequency_create(MskContainer *parent)
+{
+    MskModule *mod;
+    
+    mod = msk_module_create(parent, "pitch to frequency",
+                            msk_pitchtofrequency_process,
+                            NULL,
+                            NULL,
+                            0);
+    
+    msk_add_input_port(mod, "pitch", MSK_AUDIO_DATA, 69.0f);
+    msk_add_output_port(mod, "frequency", MSK_AUDIO_DATA);
+    
+    return mod;
+}

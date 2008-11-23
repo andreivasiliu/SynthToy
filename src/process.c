@@ -158,7 +158,7 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
         if ( message[2] == 0 && message[1] != last_note )
             break;
             
-        msk_module_set_float_property(v->osc_freq, "value", note_frequencies[message[1]]);
+        msk_module_set_float_property(v->osc_freq, "value", message[1]);
         msk_module_set_float_property(v->amp, "mul", (float) message[2] / 127);
         last_note = message[1];
         
@@ -185,7 +185,7 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
                 MIDI_CHANNEL(message[0]), MIDI_14BIT(message[1], message[2]));
         
         msk_module_set_float_property(v->freq_add, "add",
-                                      MIDI_14BIT(message[1], message[2]) / 8192 - 1);
+                                      (float) MIDI_14BIT(message[1], message[2]) / 8192 - 1);
         
         break;
     default:

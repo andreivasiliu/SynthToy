@@ -119,8 +119,10 @@ MskModule *msk_input_create(MskContainer *parent, gchar *name, guint type);
 MskModule *msk_output_create(MskContainer *parent, gchar *name, guint type);
 MskModule *msk_constant_create(MskContainer *parent);
 MskModule *msk_oscillator_create(MskContainer *parent);
+MskModule *msk_pitchtofrequency_create(MskContainer *parent);
 MskModule *msk_addmul_create(MskContainer *parent);
 MskModule *msk_add_create(MskContainer *parent);
+MskModule *msk_mul_create(MskContainer *parent);
 
 MskContainer *msk_world_create(gulong sample_rate, gsize block_size);
 void msk_world_prepare(MskContainer *container);

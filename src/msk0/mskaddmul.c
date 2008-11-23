@@ -93,3 +93,32 @@ MskModule *msk_add_create(MskContainer *parent)
     
     return mod;
 }
+
+void msk_mul_process(MskModule *self, int start, int frames, void *state)
+{
+    const float * const in1 = msk_module_get_input_buffer(self, "in1");
+    const float * const in2 = msk_module_get_input_buffer(self, "in2");
+    float *out = msk_module_get_output_buffer(self, "out");
+    int i;
+    
+    for ( i = start; i < start + frames; i++ )
+        out[i] = in1[i] * in2[i];
+}
+
+MskModule *msk_mul_create(MskContainer *parent)
+{
+    MskModule *mod;
+    
+    mod = msk_module_create(parent, "mul",
+                            msk_mul_process,
+                            NULL,
+                            NULL,
+                            0);
+    
+    msk_add_input_port(mod, "in1", MSK_AUDIO_DATA, 0.0f);
+    msk_add_input_port(mod, "in2", MSK_AUDIO_DATA, 0.0f);
+    msk_add_output_port(mod, "out", MSK_AUDIO_DATA);
+    
+    return mod;
+}
+
