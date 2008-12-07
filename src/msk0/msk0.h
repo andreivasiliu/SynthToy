@@ -115,8 +115,11 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
 
 MskContainer *msk_container_create(MskContainer *parent);
 
-MskModule *msk_input_create(MskContainer *parent, gchar *name, guint type);
-MskModule *msk_output_create(MskContainer *parent, gchar *name, guint type);
+MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint type);
+MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint type);
+
+MskModule *msk_input_create(MskContainer *parent);
+MskModule *msk_output_create(MskContainer *parent);
 MskModule *msk_constant_create(MskContainer *parent);
 MskModule *msk_oscillator_create(MskContainer *parent);
 MskModule *msk_pitchtofrequency_create(MskContainer *parent);

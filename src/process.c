@@ -6,6 +6,9 @@
 #include "msk0/msk0.h"
 
 
+/* Note: This file was created purely for testing. It will go away. */
+
+
 extern void virkb_noteon(int note);
 extern void virkb_noteoff(int note);
 extern void draw_module(MskModule *mod, long x, long y);
@@ -14,6 +17,7 @@ extern float array[512];
 extern float array2[512];
 
 MskContainer *cont;
+extern MskContainer *current_container;
 
 struct voice_type
 {
@@ -36,7 +40,7 @@ void init_channel(int ch)
     voice[ch].osc_freq = msk_constant_create(cont);
     voice[ch].lfo_freq = msk_constant_create(cont);
     voice[ch].amp = msk_addmul_create(cont);
-    output = msk_output_create(cont, audio1, MSK_AUDIO_DATA);
+    output = msk_output_create_with_name(cont, audio1, MSK_AUDIO_DATA);
     voice[ch].freq_add = msk_addmul_create(cont);
     
     draw_module(voice[ch].osc, 285, 90);
@@ -66,6 +70,8 @@ void aural_init()
         note_frequencies[i] = note_frequencies[i+1] / 1.0594630943f;
     
     cont = msk_world_create(44100, 256);
+    
+    current_container = cont;
     
     for ( i = 0; i < 1; i++ )
         init_channel(i);
@@ -230,3 +236,4 @@ void emulate_control_change(int channel, int control, int value)
     
     event_func(0, 1, message, 3, NULL);
 }
+

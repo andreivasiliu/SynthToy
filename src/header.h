@@ -2,8 +2,9 @@
 # include "config.h"
 #endif
 
-/* This include would ideally go away. */
+/* These includes would ideally go away. */
 #include <gtk/gtk.h>
+#include <cairo.h>
 
 extern void refresh_osc_window();
 
@@ -21,4 +22,8 @@ extern void aural_init();
 extern void process_func(float *in, float *out, int nframes, int sample_rate, void *data);
 extern void event_func(int nframes, int type, void *event_data, int event_size, void *data);
 
+/* gmskmenu.c */
 extern GtkWidget *gmsk_create_menu();
+
+/* gmsknavbar.c */
+extern void gmsk_paint_navbar(cairo_t *cr);

@@ -141,7 +141,7 @@ gboolean msk_container_sort(MskContainer *container)
 }
 
 
-MskModule *msk_input_create(MskContainer *parent, gchar *name, guint type)
+MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint type)
 {
     MskModule *mod;
     MskPort *interior_port;
@@ -161,9 +161,13 @@ MskModule *msk_input_create(MskContainer *parent, gchar *name, guint type)
     return mod;
 }
 
+MskModule *msk_input_create(MskContainer *parent)
+{
+    return msk_input_create_with_name(parent, "in", MSK_AUDIO_DATA);
+}
 
 // This only works on monophonic containers..
-MskModule *msk_output_create(MskContainer *parent, gchar *name, guint type)
+MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint type)
 {
     MskModule *mod;
     MskPort *interior_port;
@@ -183,4 +187,7 @@ MskModule *msk_output_create(MskContainer *parent, gchar *name, guint type)
     return mod;
 }
 
-
+MskModule *msk_output_create(MskContainer *parent)
+{
+    return msk_output_create_with_name(parent, "out", MSK_AUDIO_DATA);
+}

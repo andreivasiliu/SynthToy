@@ -18,6 +18,7 @@
  */
 
 extern MskContainer *cont;
+MskContainer *current_container;
 
 cairo_surface_t *surface;
 
@@ -34,7 +35,6 @@ struct _GMPort
     int pos_y;
     
     /* Destination. */
-    GraphicalModule *dest_gmod;
     int dest_port_nr;
 };
 
@@ -318,6 +318,19 @@ GraphicalModule *find_gmod(MskModule *mod)
 }
 
 
+void redraw_module(MskModule *mod)
+{
+    GraphicalModule *gmod;
+    
+    gmod = find_gmod(mod);
+    if ( !gmod )
+        return;
+    
+    /* Memory leak. */
+    graphical_modules = g_list_remove(graphical_modules, gmod);
+    draw_module(mod, gmod->x, gmod->y);
+}
+
 void draw_connections(cairo_t *cr)
 {
     GList *item;
@@ -331,6 +344,9 @@ void draw_connections(cairo_t *cr)
     for ( item = graphical_modules; item; item = item->next )
     {
         gmod = item->data;
+        
+        if ( gmod->mod->parent != current_container )
+            continue;
         
         gmport = gmod->in_ports;
         for ( i = 0; i < gmod->in_ports_nr; i++, gmport++ )
@@ -383,11 +399,14 @@ void paint_editor(GtkWidget *widget)
     {
         GraphicalModule *gmod = item->data;
         
+        if ( gmod->mod->parent != current_container )
+            continue;
+        
         cairo_set_source_surface(cr, gmod->surface, gmod->x, gmod->y);
         
-        if ( gmod == dragged_module )
-            cairo_paint_with_alpha(cr, 0.8);
-        else
+//        if ( gmod == dragged_module )
+//            cairo_paint_with_alpha(cr, 0.8);
+//        else
             cairo_paint(cr);
     }
     
@@ -427,6 +446,8 @@ void paint_editor(GtkWidget *widget)
         cairo_restore(cr);
     }
     
+    gmsk_paint_navbar(cr);
+    
     cairo_destroy(cr);
 }
 
@@ -442,7 +463,8 @@ GraphicalModule *get_gmod_at(int x, int y)
     {
         gmod = item->data;
         
-        if ( x >= gmod->x && x < gmod->x + gmod->width &&
+        if ( gmod->mod->parent == current_container &&
+             x >= gmod->x && x < gmod->x + gmod->width &&
              y >= gmod->y && y < gmod->y + gmod->height )
             return gmod;
         
@@ -598,6 +620,13 @@ G_MODULE_EXPORT gboolean
             return TRUE;
         }
         
+        /* Double-click on a container? */
+        if ( event->type == GDK_2BUTTON_PRESS )
+        {
+            if ( gmod->mod->container )
+                current_container = gmod->mod->container;
+        }
+        
         dragged_module = gmod;
         drag_grip_x = event->x - gmod->x;
         drag_grip_y = event->y - gmod->y;
@@ -605,6 +634,16 @@ G_MODULE_EXPORT gboolean
         graphical_modules = g_list_remove(graphical_modules, gmod);
         graphical_modules = g_list_append(graphical_modules, gmod);
         
+        gtk_widget_queue_draw(GTK_WIDGET(object));
+        
+        return TRUE;
+    }
+    
+    /* Double-click on empty space? */
+    if ( event->type == GDK_2BUTTON_PRESS &&
+         current_container->module->parent )
+    {
+        current_container = current_container->module->parent;
         gtk_widget_queue_draw(GTK_WIDGET(object));
         
         return TRUE;
