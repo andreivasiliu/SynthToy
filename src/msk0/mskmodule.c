@@ -37,6 +37,25 @@ MskModule *msk_module_create(MskContainer *parent, gchar *name,
 }
 
 
+void msk_module_destroy(MskModule *mod)
+{
+    MskContainer *parent;
+    
+    /* Unlink all ports. */
+    // TODO
+    
+    /* Unlink from world. */
+    if ( mod->parent )
+        mod->parent->module_list = g_list_remove(mod->parent->module_list, mod);
+    
+    /* Free ports. */
+    // TODO
+    
+    /* Free. */
+    g_free(mod->name);
+    g_free(mod);
+}
+
 void msk_module_activate(MskModule *mod)
 {
     int voices = mod->parent->voices * mod->parent->voice_size;
@@ -171,11 +190,25 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
     
     if ( right_port->input.connection )
     {
+        MskModule *remote_mod = right_port->input.connection->owner;
+        
         msk_disconnect_input(right_port);
+        
+        // TODO: strcmp sucks
+        if ( !strcmp(remote_mod->name, "autoconstant") )
+        {
+            msk_module_destroy(remote_mod);
+        }
     }
     
     left_port->output.connections = g_list_append(left_port->output.connections, right_port);
     right_port->input.connection = left_port;
+    
+/*    // TODO: use something other than left_port
+    while ( left_port->output.hardlink )
+        left_port = left_port->output.hardlink;
+    
+    right_port->buffer = left_port->buffer;*/
     
     // TODO: check if it succeeded
     msk_container_sort(left->parent);
@@ -184,6 +217,9 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
 
 void msk_meld_ports(MskPort *inport, MskPort *outport)
 {
+    g_free(outport->buffer);
+    outport->buffer = NULL;
+    
     outport->output.hardlink = inport;
 }
 
@@ -204,6 +240,20 @@ MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat defa
     
     mod->in_ports = g_list_append(mod->in_ports, port);
     
+    if ( mod->parent )
+    {
+        MskModule *ac;
+        
+        ac = msk_autoconstant_create(mod->parent);
+        msk_module_set_float_property(ac, "value", default_value);
+        
+        msk_connect_ports(ac, "output", mod, name);
+    }
+    else
+    {
+        port->buffer = g_new(float, mod->world->block_size);
+    }
+    
     return port;
 }
 
@@ -220,6 +270,10 @@ MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type)
     port->owner = mod;
     
     mod->out_ports = g_list_append(mod->out_ports, port);
+    
+    // TODO: Fix me!
+    if ( type == MSK_AUDIO_DATA )
+        port->buffer = g_new(float, mod->world->block_size);
     
     return port;
 }
@@ -264,6 +318,14 @@ gconstpointer msk_module_get_input_buffer(MskModule *mod, gchar *name)
     if ( !port )
         g_error("Output port '%s' was not found.", name);
     
+    port = port->input.connection;
+    
+    /* Follow hardlinks ((TODO: which are now symlinks)) */
+    while ( port->output.hardlink )
+    {
+        port = port->output.hardlink->input.connection;
+    }
+    
     return port->buffer;
 }
 
@@ -274,6 +336,12 @@ gpointer msk_module_get_output_buffer(MskModule *mod, gchar *name)
     
     if ( !port )
         g_error("Output port '%s' was not found.", name);
+    
+    /* Follow hardlinks ((TODO: which are now symlinks)) */
+    while ( port->output.hardlink )
+    {
+        port = port->output.hardlink->input.connection;
+    }
     
     return port->buffer;
 }

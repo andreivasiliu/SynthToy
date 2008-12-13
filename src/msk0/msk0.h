@@ -43,6 +43,7 @@ struct _MskContainer
     
     /* Runtime information. */
     GList *process_order;
+    guint current_voice;
 };
 
 
@@ -120,7 +121,9 @@ MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint 
 
 MskModule *msk_input_create(MskContainer *parent);
 MskModule *msk_output_create(MskContainer *parent);
+MskModule *msk_voice_create(MskContainer *parent);
 MskModule *msk_constant_create(MskContainer *parent);
+MskModule *msk_autoconstant_create(MskContainer *parent);
 MskModule *msk_oscillator_create(MskContainer *parent);
 MskModule *msk_pitchtofrequency_create(MskContainer *parent);
 MskModule *msk_addmul_create(MskContainer *parent);

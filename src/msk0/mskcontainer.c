@@ -41,12 +41,13 @@ void msk_container_deactivate(MskContainer *self)
 
 void msk_container_process(MskContainer *self, int start, int nframes, guint voice)
 {
-//    MskContainer *container = self->container;
     GList *item;
     int v;
     
     for ( v = 0; v < self->voices; v++ )
     {
+        self->current_voice = v;
+        
         for ( item = self->process_order; item; item = item->next )
         {
             MskModule *mod = item->data;
@@ -190,4 +191,31 @@ MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint 
 MskModule *msk_output_create(MskContainer *parent)
 {
     return msk_output_create_with_name(parent, "out", MSK_AUDIO_DATA);
+}
+
+
+void msk_voice_process(MskModule *self, int start, int frames, void *state)
+{
+    float * const out = msk_module_get_output_buffer(self, "nr");
+    int i;
+    const int voice = self->parent->current_voice;
+    
+    for ( i = start; i < start + frames; i++ )
+        out[i] = voice;
+}
+
+/* Output the number of the current voice. */
+MskModule *msk_voice_create(MskContainer *parent)
+{
+    MskModule *mod;
+    
+    mod = msk_module_create(parent, "voice",
+                            msk_voice_process,
+                            NULL,
+                            NULL,
+                            0);
+    
+    msk_add_output_port(mod, "nr", MSK_AUDIO_DATA);
+    
+    return mod;
 }

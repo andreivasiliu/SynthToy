@@ -21,11 +21,9 @@ G_MODULE_EXPORT void on_mi_createmod_activate(GtkObject *object, gpointer data)
     g_mutex_lock(cont->module->world->lock_for_model);
     
     msk_container_deactivate(cont->module->world->root);
-    msk_destroy_buffers_on_module(cont->module->world->root->module);
     
     mod = create_some_module(current_container);
     
-    msk_create_buffers_on_module(cont->module->world->root->module);
     msk_container_activate(cont->module->world->root);
     
     draw_module(mod, 10, 10);
@@ -50,11 +48,10 @@ G_MODULE_EXPORT void on_mi_createcont_activate(GtkObject *object, gpointer data)
     g_mutex_lock(cont->module->world->lock_for_model);
     
     msk_container_deactivate(cont->module->world->root);
-    msk_destroy_buffers_on_module(cont->module->world->root->module);
     
     container = msk_container_create(current_container);
+    container->voices = 2;
     
-    msk_create_buffers_on_module(cont->module->world->root->module);
     msk_container_activate(cont->module->world->root);
     
     draw_module(container->module, 10, 10);
@@ -132,6 +129,13 @@ GtkWidget *gmsk_create_menu()
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_output_create);
+    gtk_widget_show(item);
+    
+    item = gtk_menu_item_new_with_label("Voice");
+    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
+    gtk_signal_connect(GTK_OBJECT(item), "activate",
+                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
+                       &msk_voice_create);
     gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Create container");

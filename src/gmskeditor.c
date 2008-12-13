@@ -520,10 +520,8 @@ void gmsk_connect_gmports(GMPort *output, GMPort *input)
     g_mutex_lock(mutex);
     
     msk_container_deactivate(cont);
-    msk_destroy_buffers_on_module(cont->module);
     msk_connect_ports(output->owner->mod, output->port->name,
                       input->owner->mod, input->port->name);
-    msk_create_buffers_on_module(cont->module);
     msk_container_activate(cont);
     
     g_mutex_unlock(mutex);

@@ -82,6 +82,7 @@ void msk_prepare_container(MskContainer *container)
 
 void msk_create_buffers_on_module(MskModule *mod)
 {
+#if 0
     // TODO: move.
     void msk_create_buffers_on_container(MskContainer *container);
     
@@ -127,10 +128,12 @@ void msk_create_buffers_on_module(MskModule *mod)
         else
             port->buffer = g_new0(float, mod->world->block_size);
     }
+#endif
 }
 
 void msk_create_buffers_on_container(MskContainer *container)
 {
+#if 0
     GList *lmod;
     
 //    g_print("Entering container.\n");
@@ -142,6 +145,7 @@ void msk_create_buffers_on_container(MskContainer *container)
         msk_create_buffers_on_module(mod);
     }
     
+#endif
 //    g_print("Leaving container.\n");
 }
 

@@ -60,3 +60,24 @@ MskModule *msk_constant_create(MskContainer *parent)
     return mod;
 }
 
+
+/* Created automatically for unconnected input ports. */
+MskModule *msk_autoconstant_create(MskContainer *parent)
+{
+    MskModule *mod;
+    
+    mod = msk_module_create(parent, "autoconstant",
+                            msk_constant_process,
+                            msk_constant_activate,
+                            NULL,
+                            sizeof(MskConstantState));
+    
+    /* Properties */
+    msk_add_float_property(mod, "value", 0.0f);
+    
+    /* Input/Output ports */
+    msk_add_output_port(mod, "output", MSK_AUDIO_DATA);
+    
+    return mod;
+}
+
