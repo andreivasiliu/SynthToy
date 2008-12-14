@@ -1,0 +1,6 @@
+This is a list of lazy coding workarounds that MUST be rewritten:
+
+ - buffer aquisition at runtime
+ - global state
+ - autoconstant's processing
+ - output buffer initialization
