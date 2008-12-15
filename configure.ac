@@ -30,6 +30,7 @@ m4_pattern_forbid([^MSK_])
 PKG_CHECK_MODULES(GLIB, [glib-2.0])
 PKG_CHECK_MODULES(GMODULE, [gmodule-2.0])
 PKG_CHECK_MODULES(GTK, [gtk+-2.0])
+PKG_CHECK_MODULES(GTHREAD, [gthread-2.0])
 
 # Checks for optional pakages. The macro is defined in acinclude.m4.
 MSK_CHECK_OPTIONAL_MODULE([portaudio], [PortAudio], [PORTAUDIO],

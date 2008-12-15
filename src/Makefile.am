@@ -3,10 +3,11 @@ pkgdata_DATA = first.ui
 EXTRA_DIST = first.glade
 CLEANFILES = first.ui
 
-synthtoy_SOURCES = first.c events.c process.c virkb.c mskeditor.c header.h
-synthtoy_LDADD = msk0/libmsk0.la $(GTK_LIBS)
+synthtoy_SOURCES = first.c events.c process.c virkb.c gmskeditor.c \
+		   gmskmenu.c gmsknavbar.c header.h
+synthtoy_LDADD = msk0/libmsk0.la $(GTK_LIBS) $(GTHREAD_LIBS)
 synthtoy_LDFLAGS = -static -rdynamic
-synthtoy_CFLAGS = $(GTK_CFLAGS)
+synthtoy_CFLAGS = $(GTK_CFLAGS) $(GTHREAD_CFLAGS)
 
 
 SUBDIRS = msk0
