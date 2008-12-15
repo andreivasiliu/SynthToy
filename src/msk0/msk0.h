@@ -90,6 +90,9 @@ struct _MskModule
     gsize state_size;
     
     gboolean prepared;
+    
+    // TODO: this workaround must go away.
+    MskPort *mix_to;
 };
 
 struct _MskProperty

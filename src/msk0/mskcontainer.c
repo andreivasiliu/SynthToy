@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <string.h> // for memset()
 
 #include "msk0.h"
 #include "mskinternal.h"
@@ -43,6 +44,14 @@ void msk_container_process(MskContainer *self, int start, int nframes, guint voi
 {
     GList *item;
     int v;
+    
+    // TODO: This must go away; find a better way to initialize those buffers.
+    for ( item = self->module->out_ports; item; item = item->next )
+    {
+        MskPort *port = item->data;
+        
+        memset(port->buffer, 0, self->module->world->block_size*sizeof(float));
+    }
     
     for ( v = 0; v < self->voices; v++ )
     {
@@ -167,7 +176,18 @@ MskModule *msk_input_create(MskContainer *parent)
     return msk_input_create_with_name(parent, "in", MSK_AUDIO_DATA);
 }
 
-// This only works on monophonic containers..
+void msk_output_process(MskModule *self, int start, int frames, void *state)
+{
+    // TODO: FIX THIIIS!
+    char *name = ((MskPort*)self->in_ports->data)->name;
+    const float * const in = msk_module_get_input_buffer(self, name);
+    float * const mix_to = self->mix_to->buffer;
+    int i;
+    
+    for ( i = start; i < start + frames; i++ )
+        mix_to[i] += in[i];
+}
+
 MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint type)
 {
     MskModule *mod;
@@ -175,7 +195,7 @@ MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint 
     MskPort *exterior_port;
     
     mod = msk_module_create(parent, "output",
-                            NULL,
+                            msk_output_process,
                             NULL,
                             NULL,
                             0);
@@ -183,7 +203,10 @@ MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint 
     interior_port = msk_add_input_port(mod, name, type, 0.0f);  // ?
     exterior_port = msk_add_output_port(parent->module, name, type);
     
-    msk_meld_ports(interior_port, exterior_port);
+    mod->mix_to = exterior_port;
+    
+    // This only works on monophonic containers..
+    //msk_meld_ports(interior_port, exterior_port);
     
     return mod;
 }
