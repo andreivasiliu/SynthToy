@@ -390,6 +390,8 @@ void paint_editor(GtkWidget *widget)
     GList *item;
     cairo_t *cr;
     
+    g_print("Paint requested.\n");
+    
     cr = gdk_cairo_create(widget->window);
     
     cairo_set_source_rgb(cr, 0.2, 0.2, 0.3);
@@ -542,26 +544,33 @@ G_MODULE_EXPORT gboolean
 {
     if ( dragged_module )
     {
-        dragged_module->x = event->x - drag_grip_x;
-        dragged_module->y = event->y - drag_grip_y;
+        long new_x, new_y;
+        
+        new_x = event->x - drag_grip_x;
+        new_y = event->y - drag_grip_y;
         
         /* Unless 'shift' is pressed, snap to a 5x5 grid. */
         if ( !(event->state & GDK_SHIFT_MASK) )
         {
             /* I wrote this due to lack of inspiration... How else do I round it? */
-            dragged_module->x = ((dragged_module->x + 2) -
-                                 (dragged_module->x + 2) % 5);
-            dragged_module->y = ((dragged_module->y + 2) -
-                                 (dragged_module->y + 2) % 5);
+            new_x = ((new_x + 2) - (new_x + 2) % 5);
+            new_y = ((new_y + 2) - (new_y + 2) % 5);
         }
         
-        if ( dragged_module->x < 0 )
-            dragged_module->x = 0;
-        if ( dragged_module->y < 0 )
-            dragged_module->y = 0;
+        if ( new_x < 0 )
+            new_x = 0;
+        if ( new_y < 0 )
+            new_y = 0;
         
-        /* This causes redraws even when nothing moved.. :( */
-        gtk_widget_queue_draw(GTK_WIDGET(object));
+        /* This prevents redraws when nothing changed. */
+        if ( dragged_module->x != new_x ||
+             dragged_module->y != new_y )
+        {
+            dragged_module->x = new_x;
+            dragged_module->y = new_y;
+            
+            gtk_widget_queue_draw(GTK_WIDGET(object));
+        }
         
         return TRUE;
     }
