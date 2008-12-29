@@ -150,6 +150,7 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
                 MIDI_CHANNEL(message[0]), message[1], message[2]);
         
         virkb_noteoff(message[1]);
+        msk_message_note_off(cont->module->world, message[1], message[2]);
         
         break;
     case 0x9:  /* 1001 */
@@ -160,6 +161,8 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
             virkb_noteon(message[1]);
         else
             virkb_noteoff(message[1]);
+        
+        msk_message_note_on(cont->module->world, message[1], message[2]);
         
         if ( message[2] == 0 && message[1] != last_note )
             break;

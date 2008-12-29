@@ -39,8 +39,6 @@ MskModule *msk_module_create(MskContainer *parent, gchar *name,
 
 void msk_module_destroy(MskModule *mod)
 {
-    MskContainer *parent;
-    
     /* Unlink all ports. */
     // TODO
     
@@ -101,6 +99,17 @@ void msk_module_deactivate(MskModule *mod)
     
     g_ptr_array_free(mod->state, TRUE);
     mod->state = NULL;
+}
+
+
+void msk_add_global_state(MskModule *module,
+                          MskGlobalActivateCallback global_activate,
+                          MskGlobalDeactivateCallback global_deactivate,
+                          gsize state_size)
+{
+    module->global_state_size = state_size;
+    module->global_activate = global_activate;
+    module->global_deactivate = global_deactivate;
 }
 
 

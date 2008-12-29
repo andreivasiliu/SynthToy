@@ -5,8 +5,6 @@
 #include <pango/pangocairo.h>
 #undef PANGO_ENABLE_BACKEND
 
-#include <libintl.h>
-
 #include "header.h"
 #include "msk0/msk0.h"
 

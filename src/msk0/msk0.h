@@ -6,6 +6,7 @@
 
 typedef struct _MskWorld MskWorld;
 typedef struct _MskContainer MskContainer;
+typedef struct _MskInstrument MskInstrument;
 typedef struct _MskPort MskPort;
 typedef struct _MskModule MskModule;
 typedef struct _MskProperty MskProperty;
@@ -13,6 +14,8 @@ typedef struct _MskProperty MskProperty;
 typedef void (*MskProcessCallback)(MskModule *self, int start, int frames, void *state);
 typedef void (*MskActivateCallback)(MskModule *self, void *state);
 typedef void (*MskDeactivateCallback)(MskModule *self, void *state);
+typedef void (*MskGlobalActivateCallback)(MskModule *self, void *state);
+typedef void (*MskGlobalDeactivateCallback)(MskModule *self, void *state);
 
 
 struct _MskWorld
@@ -21,6 +24,8 @@ struct _MskWorld
     gsize block_size;
     
     MskContainer *root;
+    
+    GList *instruments;
     
     GMutex *lock_for_model;
 };
@@ -41,9 +46,30 @@ struct _MskContainer
     guint voices;
     guint voice_size;
     
+    /* If the container is also an instrument. */
+    MskInstrument *instrument;
+    
     /* Runtime information. */
     GList *process_order;
     guint current_voice;
+};
+
+
+// Not sure if this should even exist
+struct _MskInstrument
+{
+    MskContainer *container;
+    
+    int channel; //unused yet
+    
+    /* Voice information. */
+    char *voice_active;
+    short *voice_note;
+    short *voice_velocity;
+    
+    
+    /* A list of all MskParameters. */
+    GList *parameter_list; //unused yet
 };
 
 
@@ -81,6 +107,8 @@ struct _MskModule
     MskProcessCallback process;
     MskActivateCallback activate;
     MskDeactivateCallback deactivate;
+    MskGlobalActivateCallback global_activate;
+    MskGlobalDeactivateCallback global_deactivate;
     
     GList *in_ports;
     GList *out_ports;
@@ -88,6 +116,8 @@ struct _MskModule
     
     GPtrArray *state;
     gsize state_size;
+    void *global_state;
+    gsize global_state_size;
     
     gboolean prepared;
     
@@ -118,6 +148,7 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
                        MskModule *right, gchar *right_port_name);
 
 MskContainer *msk_container_create(MskContainer *parent);
+MskContainer *msk_instrument_create(MskContainer *parent);
 
 MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint type);
 MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint type);
@@ -132,10 +163,15 @@ MskModule *msk_pitchtofrequency_create(MskContainer *parent);
 MskModule *msk_addmul_create(MskContainer *parent);
 MskModule *msk_add_create(MskContainer *parent);
 MskModule *msk_mul_create(MskContainer *parent);
+MskModule *msk_voiceactive_create(MskContainer *parent);
+MskModule *msk_voicepitch_create(MskContainer *parent);
+
 
 MskContainer *msk_world_create(gulong sample_rate, gsize block_size);
 void msk_world_prepare(MskContainer *container);
 void msk_world_run(MskContainer *container);
+void msk_message_note_on(MskWorld *world, short note, short velocity);
+void msk_message_note_off(MskWorld *world, short note, short velocity);
 
 
 // TODO: delete

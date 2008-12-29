@@ -43,14 +43,15 @@ G_MODULE_EXPORT void on_mi_createmod_activate(GtkObject *object, gpointer data)
 
 G_MODULE_EXPORT void on_mi_createcont_activate(GtkObject *object, gpointer data)
 {
+    MskContainer *(*create_some_container)(MskContainer*) = data;
+    
     MskContainer *container;
     
     g_mutex_lock(cont->module->world->lock_for_model);
     
     msk_container_deactivate(cont->module->world->root);
     
-    container = msk_container_create(current_container);
-    container->voices = 2;
+    container = create_some_container(current_container);
     
     msk_container_activate(cont->module->world->root);
     
@@ -76,7 +77,6 @@ GtkWidget *gmsk_create_menu()
     
     item = gtk_menu_item_new_with_label("Create module");
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-    gtk_widget_show(item);
     
     create_menu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), create_menu);
@@ -86,66 +86,77 @@ GtkWidget *gmsk_create_menu()
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_oscillator_create);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Pitch to Frequency");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_pitchtofrequency_create);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Constant");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("AddMul");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Add");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_add_create);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Multiply");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_mul_create);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Input");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_input_create);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Output");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_output_create);
-    gtk_widget_show(item);
     
     item = gtk_menu_item_new_with_label("Voice");
     gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_voice_create);
-    gtk_widget_show(item);
+    
+    item = gtk_menu_item_new_with_label("Voice Active");
+    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
+    gtk_signal_connect(GTK_OBJECT(item), "activate",
+                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
+                       &msk_voiceactive_create);
+    
+    item = gtk_menu_item_new_with_label("Voice Pitch");
+    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
+    gtk_signal_connect(GTK_OBJECT(item), "activate",
+                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
+                       &msk_voicepitch_create);
+    
     
     item = gtk_menu_item_new_with_label("Create container");
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createcont_activate),
-                       NULL);
-    gtk_widget_show(item);
+                       &msk_container_create);
+    
+    item = gtk_menu_item_new_with_label("Create instrument");
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+    gtk_signal_connect(GTK_OBJECT(item), "activate",
+                       GTK_SIGNAL_FUNC(on_mi_createcont_activate),
+                       &msk_instrument_create);
     
     gmsk_menu = menu;
+    
+    gtk_widget_show_all(gmsk_menu);
     
     return gmsk_menu;
 }

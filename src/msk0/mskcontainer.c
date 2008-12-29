@@ -6,7 +6,7 @@
 
 
 #define MSK_SIMPLE_CONTAINER 1
-
+#define MSK_INSTRUMENT_CONTAINER 2
 
 void msk_container_activate(MskContainer *self)
 {
@@ -241,4 +241,50 @@ MskModule *msk_voice_create(MskContainer *parent)
     msk_add_output_port(mod, "nr", MSK_AUDIO_DATA);
     
     return mod;
+}
+
+
+// This is almost identical with msk_container_create... and that's a
+// very big problem.
+MskContainer *msk_instrument_create(MskContainer *parent)
+{
+    MskWorld *world;
+    MskContainer *container;
+    MskInstrument *instrument;
+    MskModule *module;
+    
+    // Create the shell/wrapper/outside/whatever module.
+    module = msk_module_create(parent, "instrument",
+                               NULL,
+//                               msk_container_process, // ?
+                               NULL,
+                               NULL,
+                               0);
+    
+    container = g_new0(MskContainer, 1);
+    container->module = module;
+    container->voices = 4;
+    module->container = container;
+    
+    instrument = g_new0(MskInstrument, 1);
+    instrument->container = container;
+    instrument->voice_active = g_new0(char, container->voices);
+    instrument->voice_note = g_new0(short, container->voices);
+    instrument->voice_velocity = g_new0(short, container->voices);
+    container->instrument = instrument;
+    
+    // Add to the world
+    world = module->world;
+    world->instruments = g_list_prepend(world->instruments, instrument);
+    
+    
+    if ( parent )
+        container->voice_size = parent->voices * parent->voice_size;
+    else
+        container->voice_size = 1;
+    
+    msk_add_integer_property(module, "type", MSK_INSTRUMENT_CONTAINER);
+    // needs at least one more property: voices
+    
+    return container;
 }
