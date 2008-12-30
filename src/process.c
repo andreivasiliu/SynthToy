@@ -22,7 +22,7 @@ extern MskContainer *current_container;
 struct voice_type
 {
     MskModule *osc, *lfo, *osc_freq, *lfo_freq, *amp, *freq_add;
-} voice[16];
+} voice;
 
 float note_frequencies[128];
 int last_note = -1;
@@ -35,28 +35,28 @@ void init_channel(int ch)
     
     sprintf(audio1, "audio%d", ch);
     
-    voice[ch].osc = msk_oscillator_create(cont);
-    voice[ch].lfo = msk_oscillator_create(cont);
-    voice[ch].osc_freq = msk_constant_create(cont);
-    voice[ch].lfo_freq = msk_constant_create(cont);
-    voice[ch].amp = msk_addmul_create(cont);
+    //voice.osc = msk_oscillator_create(cont);
+    //voice.lfo = msk_oscillator_create(cont);
+    //voice.osc_freq = msk_constant_create(cont);
+    //voice.lfo_freq = msk_constant_create(cont);
+    //voice.amp = msk_addmul_create(cont);
     output = msk_output_create_with_name(cont, audio1, MSK_AUDIO_DATA);
-    voice[ch].freq_add = msk_addmul_create(cont);
+    //voice.freq_add = msk_addmul_create(cont);
     
-    draw_module(voice[ch].osc, 285, 90);
-    draw_module(voice[ch].lfo, 140, 150);
-    draw_module(voice[ch].osc_freq, 40, 50);
-    draw_module(voice[ch].lfo_freq, 35, 150);
-    draw_module(voice[ch].amp, 425, 90);
-    draw_module(voice[ch].freq_add, 150, 50);
+    //draw_module(voice.osc, 285, 90);
+    //draw_module(voice.lfo, 140, 150);
+    //draw_module(voice.osc_freq, 40, 50);
+    //draw_module(voice.lfo_freq, 35, 150);
+    //draw_module(voice.amp, 425, 90);
+    //draw_module(voice.freq_add, 150, 50);
     draw_module(output, 540, 90);
     
-    msk_connect_ports(voice[ch].osc_freq, "output", voice[ch].freq_add, "input");
-    msk_connect_ports(voice[ch].freq_add, "output", voice[ch].osc, "frequency");
-    msk_connect_ports(voice[ch].lfo_freq, "output", voice[ch].lfo, "frequency");
-    msk_connect_ports(voice[ch].lfo, "output", voice[ch].osc, "phase");
-    msk_connect_ports(voice[ch].osc, "output", voice[ch].amp, "input");
-    msk_connect_ports(voice[ch].amp, "output", output, audio1);
+    //msk_connect_ports(voice.osc_freq, "output", voice.freq_add, "input");
+    //msk_connect_ports(voice.freq_add, "output", voice.osc, "frequency");
+    //msk_connect_ports(voice.lfo_freq, "output", voice.lfo, "frequency");
+    //msk_connect_ports(voice.lfo, "output", voice.osc, "phase");
+    //msk_connect_ports(voice.osc, "output", voice.amp, "input");
+    //msk_connect_ports(voice.amp, "output", output, audio1);
 }
 
 void aural_init()
@@ -140,8 +140,7 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
     
     message = (unsigned char*) event_data;
     
-    v = &voice[MIDI_CHANNEL(message[0])];
-    v = &voice[0];
+    v = &voice;
     
     switch ( MIDI_TYPE(message[0]) )
     {
@@ -164,6 +163,7 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
         
         msk_message_note_on(cont->module->world, message[1], message[2]);
         
+        /*
         if ( message[2] == 0 && message[1] != last_note )
             break;
             
@@ -173,28 +173,35 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
         
         if ( message[2] )
             g_print("Frequency: %f.\n", note_frequencies[message[1]]);
+        */
         
         break;
     case 0xB:  /* 1011 */
         g_print("Ch%d: ControlChange, control %d, value %d.\n",
                 MIDI_CHANNEL(message[0]), message[1], message[2]);
         
+        /*
         if ( message[1] == 1 )
             msk_module_set_float_property(v->lfo_freq, "value",
                                           ((float) message[2] / 127) * 10);
+        */
         
         break;
     case 0xD:
         g_print("Ch%d: ChannelPressure, value %d.\n",
                 MIDI_CHANNEL(message[0]), message[1]);
+        /*
         msk_module_set_float_property(v->amp, "mul", 0.5 + (float) message[1] / 127 / 2);
+        */
         break;
     case 0xE:
         g_print("Ch%d: PitchWheelChange, value %d.\n",
                 MIDI_CHANNEL(message[0]), MIDI_14BIT(message[1], message[2]));
         
+        /*
         msk_module_set_float_property(v->freq_add, "add",
                                       (float) MIDI_14BIT(message[1], message[2]) / 8192 - 1);
+        */
         
         break;
     default:

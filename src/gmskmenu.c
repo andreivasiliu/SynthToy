@@ -141,6 +141,12 @@ GtkWidget *gmsk_create_menu()
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_voicepitch_create);
     
+    item = gtk_menu_item_new_with_label("Voice Velocity");
+    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
+    gtk_signal_connect(GTK_OBJECT(item), "activate",
+                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
+                       &msk_voicevelocity_create);
+    
     
     item = gtk_menu_item_new_with_label("Create container");
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);

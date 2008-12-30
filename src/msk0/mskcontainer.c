@@ -263,7 +263,7 @@ MskContainer *msk_instrument_create(MskContainer *parent)
     
     container = g_new0(MskContainer, 1);
     container->module = module;
-    container->voices = 4;
+    container->voices = 8;
     module->container = container;
     
     instrument = g_new0(MskInstrument, 1);

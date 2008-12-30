@@ -1,5 +1,5 @@
-C_FLAGS = -Wall `pkg-config --cflags gtk+-2.0`
-L_FLAGS = `pkg-config --libs gtk+-2.0 gthread-2.0`
+C_FLAGS = -Wall `pkg-config --cflags gtk+-2.0` ${CFLAGS}
+L_FLAGS = `pkg-config --libs gtk+-2.0 gthread-2.0` ${LFLAGS}
 
 BINEXT = .exe
 MODEXT = .dll

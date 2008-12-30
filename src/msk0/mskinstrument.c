@@ -161,3 +161,42 @@ MskModule *msk_voicepitch_create(MskContainer *parent)
     return mod;
 }
 
+void msk_voicevelocity_process(MskModule *self, int start, int frames, void *state)
+{
+    float * const out = msk_module_get_output_buffer(self, "velocity");
+    MskInstrument *instrument = NULL;
+    MskContainer *parent = self->parent;
+    int i, voice;
+    float value;
+    
+    // TODO: This is WAY TO VERBOSE.
+    /* Find the instrument this module resides in. */
+    while ( parent && (instrument = parent->instrument) == NULL )
+    {
+        parent = parent->module->parent;
+    }
+    
+    g_assert(instrument != NULL);
+    
+    voice = instrument->container->current_voice;
+    value = (float)instrument->voice_velocity[voice] / 127;
+    
+    for ( i = start; i < start + frames; i++ )
+        out[i] = value;
+}
+
+MskModule *msk_voicevelocity_create(MskContainer *parent)
+{
+    MskModule *mod;
+    
+    mod = msk_module_create(parent, "voicevelocity",
+                            msk_voicevelocity_process,
+                            NULL,
+                            NULL,
+                            0);
+    
+    msk_add_output_port(mod, "velocity", MSK_AUDIO_DATA);
+    
+    return mod;
+}
+

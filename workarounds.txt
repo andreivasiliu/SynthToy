@@ -4,3 +4,5 @@ This is a list of lazy coding workarounds that MUST be rewritten:
  - global state
  - autoconstant's processing
  - output buffer initialization
+ - the instrument implementation is crude... iron it out
+ - the MIDI modules need to find a better way to get their instrument

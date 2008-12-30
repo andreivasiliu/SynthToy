@@ -1,5 +1,5 @@
-C_FLAGS = -g -Wall `pkg-config --cflags glib-2.0`
-L_FLAGS = `pkg-config --libs glib-2.0` -lm
+C_FLAGS = -g -Wall `pkg-config --cflags glib-2.0` ${CFLAGS}
+L_FLAGS = `pkg-config --libs glib-2.0` -lm ${LFLAGS}
 
 OBJ_TEST = msktestzone.o
 OBJECTS  = mskmodule.o mskworld.o mskcontainer.o mskconstant.o mskoscillator.o \

@@ -165,6 +165,7 @@ MskModule *msk_add_create(MskContainer *parent);
 MskModule *msk_mul_create(MskContainer *parent);
 MskModule *msk_voiceactive_create(MskContainer *parent);
 MskModule *msk_voicepitch_create(MskContainer *parent);
+MskModule *msk_voicevelocity_create(MskContainer *parent);
 
 
 MskContainer *msk_world_create(gulong sample_rate, gsize block_size);
