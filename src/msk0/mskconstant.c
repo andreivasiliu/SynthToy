@@ -34,10 +34,11 @@ void msk_constant_activate(MskModule *self, void *vstate)
 void msk_constant_process(MskModule *self, int start, int frames, void *state)
 {
     MskConstantState *cstate = state;
+	const float value = *cstate->value;
     int i;
     
     for ( i = start; i < start + frames; i++ )
-        cstate->out[i] = *cstate->value;
+        cstate->out[i] = value;
 }
 
 

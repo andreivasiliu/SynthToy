@@ -1,4 +1,4 @@
-C_FLAGS = -g -Wall `pkg-config --cflags glib-2.0` ${CFLAGS}
+C_FLAGS = -g -Wall `pkg-config --cflags glib-2.0` -DLIBMSK_EXPORTS ${CFLAGS}
 L_FLAGS = `pkg-config --libs glib-2.0` -lm ${LFLAGS}
 
 OBJ_TEST = msktestzone.o

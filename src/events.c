@@ -13,6 +13,7 @@ extern void virkb_mouseon(gdouble x, gdouble y);
 extern void virkb_mouseoff();
 extern void emulate_control_change(int channel, int control, int value);
 
+extern GtkWidget *properties_frame;
 
 static const guint compkey_notes[] =
 {
@@ -95,3 +96,13 @@ G_MODULE_EXPORT void on_vscale_pw_value_changed(GtkObject *object)
     
 }
 
+G_MODULE_EXPORT void on_menuitem_properties_activate(GtkMenuItem *menuitem,
+                                                     gpointer     user_data)
+{
+    int visible;
+    
+    /* A show/hide toggle for the Properties frame. */
+    g_object_get(G_OBJECT(properties_frame), "visible", &visible, NULL);
+    visible = !visible;
+    g_object_set(G_OBJECT(properties_frame), "visible", visible, NULL);
+}

@@ -1,5 +1,5 @@
-C_FLAGS = -I..
-L_FLAGS = -L.. -lwinmm
+C_FLAGS = -I.. -DMODWINMM_EXPORTS ${CFLAGS}
+L_FLAGS = -L.. -lwinmm ${LFLAGS}
 
 MODEXT = .dll
 

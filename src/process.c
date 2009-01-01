@@ -19,6 +19,8 @@ extern float array2[512];
 MskContainer *cont;
 extern MskContainer *current_container;
 
+gdouble processing_time;
+
 struct voice_type
 {
     MskModule *osc, *lfo, *osc_freq, *lfo_freq, *amp, *freq_add;
@@ -27,20 +29,18 @@ struct voice_type
 float note_frequencies[128];
 int last_note = -1;
 
+GTimer *timer;
 
-void init_channel(int ch)
+void init_channel()
 {
     MskModule *output;
-    char audio1[10];
-    
-    sprintf(audio1, "audio%d", ch);
     
     //voice.osc = msk_oscillator_create(cont);
     //voice.lfo = msk_oscillator_create(cont);
     //voice.osc_freq = msk_constant_create(cont);
     //voice.lfo_freq = msk_constant_create(cont);
     //voice.amp = msk_addmul_create(cont);
-    output = msk_output_create_with_name(cont, audio1, MSK_AUDIO_DATA);
+    output = msk_output_create_with_name(cont, "audio1", MSK_AUDIO_DATA);
     //voice.freq_add = msk_addmul_create(cont);
     
     //draw_module(voice.osc, 285, 90);
@@ -73,8 +73,9 @@ void aural_init()
     
     current_container = cont;
     
-    for ( i = 0; i < 1; i++ )
-        init_channel(i);
+    init_channel();
+    
+    timer = g_timer_new();
     
     msk_world_prepare(cont);
 }
@@ -83,34 +84,23 @@ void aural_init()
 
 void process_func(float *in, float *out, int nframes, int sample_rate, void *data)
 {
-    float buffer[256], *buffer2;
-    int i, ch, j;
+    float *buffer;
+    int i;
     
     for ( i = 0; i < nframes; i += 256 )
     {
+        g_timer_start(timer);
         msk_world_run(cont);
+        g_timer_stop(timer);
         
-        memset(buffer, 0, sizeof(float)*256);
+        processing_time += g_timer_elapsed(timer, NULL);
         
-        for ( ch = 0; ch < 1; ch++ )
-        {
-            char audio1[16];
+        buffer = msk_module_get_output_buffer(cont->module, "audio1");
             
-            sprintf(audio1, "audio%d", ch);
-            
-            buffer2 = msk_module_get_output_buffer(cont->module, audio1);
-            
-            for ( j = 0; j < 256; j++ )
-                buffer[j] += buffer2[j];
-        }
-        
         memcpy(out + i, buffer, 256 * sizeof(float));
         
         if ( i < 512 )
-        {
             memcpy(array + i, buffer, 256 * sizeof(float));
-//            memcpy(array2 + i, buffer2, 256 * sizeof(float));
-        }
     }
 }
 

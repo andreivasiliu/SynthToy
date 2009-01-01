@@ -12,6 +12,7 @@
 extern void paint_keyboard(GtkWidget *widget);
 
 GtkWidget *left_osc, *editor, *virkb, *vscale_pw, *vscale_mw;
+GtkWidget *properties_frame;
 #ifdef HAVE_JACK
 void *jack_instance;
 #else
@@ -21,8 +22,10 @@ float array[512];
 float array2[512];
 
 int screenupdates;
+extern gdouble processing_time;
 
 guint timeout;
+guint pt_timeout;
 
 
 G_MODULE_EXPORT void on_window_destroy(GtkObject *object, gpointer user_data)
@@ -36,6 +39,7 @@ G_MODULE_EXPORT void on_window_destroy(GtkObject *object, gpointer user_data)
 #endif
     
     g_source_remove(timeout);
+    g_source_remove(pt_timeout);
     
     gtk_main_quit();
 }
@@ -90,6 +94,14 @@ gboolean periodic_refresh(gpointer instance)
     return TRUE;
 }
 
+gboolean pt_update(gpointer instance)
+{
+    g_print("CPU usage: %d%%.\n", (int)(processing_time*100));
+    processing_time = 0;
+    
+    return TRUE;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -116,7 +128,11 @@ int main(int argc, char *argv[])
     }
 #endif    
     
+#ifdef WIN32
+    gtk_init(NULL, NULL);
+#else
     gtk_init(&argc, &argv);
+#endif
     
     builder = gtk_builder_new();
     if ( !gtk_builder_add_from_file(builder, "first.ui", NULL) )
@@ -128,12 +144,14 @@ int main(int argc, char *argv[])
     virkb = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea3"));
     vscale_pw = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_pw"));
     vscale_mw = GTK_WIDGET(gtk_builder_get_object(builder, "vscale_mw"));
+    properties_frame = GTK_WIDGET(gtk_builder_get_object(builder, "properties_frame"));
     gtk_builder_connect_signals(builder, NULL);
     g_object_unref(G_OBJECT(builder));
     
     gtk_widget_show(window);
     
     timeout = g_timeout_add(50, periodic_refresh, NULL);
+    pt_timeout = g_timeout_add(1000, pt_update, NULL);
     
     aural_init();
    
@@ -147,5 +165,8 @@ int main(int argc, char *argv[])
     gtk_main();
 //    gdk_threads_leave();
     
+    // This is here for the Windows version, which hangs withou it.
+    exit(0);
+
     return 0;
 }

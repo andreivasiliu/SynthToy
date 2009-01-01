@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.3 on Mon Oct 13 20:57:56 2008 -->
+<!--Generated with glade3 3.4.3 on Thu Jan 01 22:37:55 2009 -->
 <glade-interface>
   <widget class="GtkWindow" id="window">
     <property name="title" translatable="yes" comments="Main window title">SynthToy</property>
@@ -46,6 +46,27 @@
               </widget>
             </child>
             <child>
+              <widget class="GtkMenuItem" id="menuitem2">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">_View</property>
+                <property name="use_underline">True</property>
+                <child>
+                  <widget class="GtkMenu" id="menu2">
+                    <property name="visible">True</property>
+                    <child>
+                      <widget class="GtkImageMenuItem" id="menuitem_properties">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">gtk-properties</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                        <signal name="activate" handler="on_menuitem_properties_activate"/>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+            <child>
               <widget class="GtkMenuItem" id="menuitem4">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">_Help</property>
@@ -71,31 +92,62 @@
           </packing>
         </child>
         <child>
-          <widget class="GtkFrame" id="frame2">
+          <widget class="GtkHBox" id="hbox5">
             <property name="visible">True</property>
-            <property name="label_xalign">0</property>
-            <property name="shadow_type">GTK_SHADOW_NONE</property>
             <child>
-              <widget class="GtkDrawingArea" id="drawingarea2">
-                <property name="width_request">256</property>
-                <property name="height_request">256</property>
+              <widget class="GtkFrame" id="frame2">
                 <property name="visible">True</property>
-                <property name="app_paintable">True</property>
-                <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
-                <signal name="expose_event" handler="on_drawingarea2_expose_event"/>
-                <signal name="button_press_event" handler="on_drawingarea2_button_press_event"/>
-                <signal name="motion_notify_event" handler="on_drawingarea2_motion_notify_event"/>
-                <signal name="button_release_event" handler="on_drawingarea2_button_release_event"/>
+                <property name="label_xalign">0</property>
+                <property name="shadow_type">GTK_SHADOW_NONE</property>
+                <child>
+                  <widget class="GtkDrawingArea" id="drawingarea2">
+                    <property name="width_request">256</property>
+                    <property name="height_request">256</property>
+                    <property name="visible">True</property>
+                    <property name="app_paintable">True</property>
+                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+                    <signal name="expose_event" handler="on_drawingarea2_expose_event"/>
+                    <signal name="button_press_event" handler="on_drawingarea2_button_press_event"/>
+                    <signal name="motion_notify_event" handler="on_drawingarea2_motion_notify_event"/>
+                    <signal name="button_release_event" handler="on_drawingarea2_button_release_event"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label2">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Viewer&lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                  </widget>
+                  <packing>
+                    <property name="type">label_item</property>
+                  </packing>
+                </child>
               </widget>
             </child>
             <child>
-              <widget class="GtkLabel" id="label2">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">&lt;b&gt;Viewer&lt;/b&gt;</property>
-                <property name="use_markup">True</property>
+              <widget class="GtkFrame" id="properties_frame">
+                <property name="label_xalign">0</property>
+                <property name="shadow_type">GTK_SHADOW_NONE</property>
+                <child>
+                  <widget class="GtkTreeView" id="properties_treeview">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label7">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">&lt;b&gt;Properties&lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                  </widget>
+                  <packing>
+                    <property name="type">label_item</property>
+                  </packing>
+                </child>
               </widget>
               <packing>
-                <property name="type">label_item</property>
+                <property name="expand">False</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </widget>
@@ -222,7 +274,6 @@
               <widget class="GtkTreeView" id="treeview1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="headers_clickable">True</property>
               </widget>
             </child>
             <child>

@@ -4,6 +4,7 @@
 
 #include "modwinmm.h"
 
+#define BUFFERS 6
 
 typedef struct _ModWinmmState
 {
@@ -17,6 +18,9 @@ typedef struct _ModWinmmState
     ProcessCallback process_func;
     EventCallback event_func;
     void *instance_data;
+
+    int buffers_used;
+    int close;
 } ModWinmmState;
 
 
@@ -72,6 +76,8 @@ void write_audio(ModWinmmState *state, void *memory_block)
     
     error = waveOutWrite(state->wave_out, wave_header, sizeof(WAVEHDR));
     
+    state->buffers_used++;
+
     if ( error != MMSYSERR_NOERROR )
     {
         char buf[256];
@@ -79,6 +85,8 @@ void write_audio(ModWinmmState *state, void *memory_block)
         
         printf("Error2 text: %s.\n", buf);
     }
+
+    OutputDebugStringA("Wrote something...\n");
 }
 
 
@@ -86,25 +94,33 @@ void CALLBACK wave_func(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
                         DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
     ModWinmmState *state = (ModWinmmState*) dwInstance;
+    WAVEHDR *wave_header;
+    char *block;
     
     (void) dwParam2;  /* Unused parameter */
     
-    if ( uMsg == WOM_DONE )
+    if ( uMsg != WOM_DONE )
+        return;
+    
+    wave_header = (WAVEHDR*) dwParam1;
+    
+    waveOutUnprepareHeader(hwo, wave_header, sizeof(WAVEHDR));
+    state->buffers_used--;
+    
+    block = wave_header->lpData;
+    free(wave_header);
+    
+    if ( state->close )
     {
-        WAVEHDR *wave_header;
-        char *block;
+        free(block);
         
-        if ( uMsg == WOM_DONE )
-        {
-            wave_header = (WAVEHDR*) dwParam1;
-            
-            waveOutUnprepareHeader(hwo, wave_header, sizeof(WAVEHDR));
-            block = wave_header->lpData;
-            free(wave_header);
-            
-            write_audio(state, block);
-        }
+        if ( state->buffers_used <= 0 )
+            SetEvent(state->event);
+        
+        return;
     }
+    
+    write_audio(state, block);
 }
 
 
@@ -141,6 +157,8 @@ void *modwinmm_init(ProcessCallback process_func, EventCallback event_func,
     state->process_func = process_func;
     state->event_func = event_func;
     state->instance_data = arg;
+    state->close = 0;
+    state->event = CreateEvent(NULL, TRUE, FALSE, NULL);
     
     return state;
 }
@@ -149,14 +167,14 @@ void modwinmm_fini(void *state)
 {
     ModWinmmState *mw_state = (ModWinmmState*) state;
     
-    free(mw_state);
+    //free(mw_state);
 }
     
 
 void modwinmm_activate(void *state)
 {
     ModWinmmState *mw_state = (ModWinmmState*) state;
-    int midi_dev;
+    int midi_dev, i;
     
     /* MIDI In */
     for ( midi_dev = 0; midi_dev < midiInGetNumDevs(); midi_dev++ )
@@ -178,16 +196,21 @@ void modwinmm_activate(void *state)
                 (DWORD_PTR) wave_func, (DWORD_PTR) mw_state, CALLBACK_FUNCTION);
     
     /* Right here is where all your dreams of "low-latency" go down the drain. */
-    write_audio(mw_state, NULL);
-    write_audio(mw_state, NULL);
-    write_audio(mw_state, NULL);
-    write_audio(mw_state, NULL);
-    write_audio(mw_state, NULL);
+    for ( i = 0; i < BUFFERS; i++ )
+        write_audio(mw_state, NULL);
 }
 
 void modwinmm_deactivate(void *state)
 {
     ModWinmmState *mw_state = (ModWinmmState*) state;
+    
+    mw_state->close = 1;
+    WaitForSingleObject(mw_state->event, INFINITE);
+    
+    waveOutReset(mw_state->wave_out);
+    waveOutClose(mw_state->wave_out);
+    midiInReset(mw_state->midi_in);
+    midiInClose(mw_state->midi_in);
     
     mw_state = 0;
 }

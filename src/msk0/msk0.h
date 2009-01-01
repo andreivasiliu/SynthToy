@@ -1,8 +1,19 @@
 #include <glib/gtypes.h>
 
+#ifdef WIN32
+ #ifdef LIBMSK_EXPORTS
+  #define MSK_API __declspec(dllexport)
+ #else
+  #define MSK_API __declspec(dllimport)
+ #endif
+#else
+# define MSK_API 
+#endif
+
+
 #define MSK_AUDIO_DATA      1
 #define MSK_FLOAT_PROPERTY  2
-#define MSK_INT_PROPERTY  2
+#define MSK_INT_PROPERTY    3
 
 typedef struct _MskWorld MskWorld;
 typedef struct _MskContainer MskContainer;
@@ -135,48 +146,48 @@ struct _MskProperty
 
 
 /*** Functions ***/
-void msk_module_activate(MskModule *mod);
-void msk_module_deactivate(MskModule *mod);
+void MSK_API msk_module_activate(MskModule *mod);
+void MSK_API msk_module_deactivate(MskModule *mod);
 
-void msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value);
+void MSK_API msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value);
 
-gconstpointer msk_module_get_property_buffer(MskModule *mod, gchar *name);
-gconstpointer msk_module_get_input_buffer(MskModule *mod, gchar *name);
-gpointer      msk_module_get_output_buffer(MskModule *mod, gchar *name);
+gconstpointer MSK_API msk_module_get_property_buffer(MskModule *mod, gchar *name);
+gconstpointer MSK_API msk_module_get_input_buffer(MskModule *mod, gchar *name);
+gpointer      MSK_API msk_module_get_output_buffer(MskModule *mod, gchar *name);
 
-void msk_connect_ports(MskModule *left, gchar *left_port_name,
+void MSK_API msk_connect_ports(MskModule *left, gchar *left_port_name,
                        MskModule *right, gchar *right_port_name);
 
-MskContainer *msk_container_create(MskContainer *parent);
-MskContainer *msk_instrument_create(MskContainer *parent);
+MskContainer MSK_API *msk_container_create(MskContainer *parent);
+MskContainer MSK_API *msk_instrument_create(MskContainer *parent);
 
-MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint type);
-MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint type);
+MskModule MSK_API *msk_input_create_with_name(MskContainer *parent, gchar *name, guint type);
+MskModule MSK_API *msk_output_create_with_name(MskContainer *parent, gchar *name, guint type);
 
-MskModule *msk_input_create(MskContainer *parent);
-MskModule *msk_output_create(MskContainer *parent);
-MskModule *msk_voice_create(MskContainer *parent);
-MskModule *msk_constant_create(MskContainer *parent);
-MskModule *msk_autoconstant_create(MskContainer *parent);
-MskModule *msk_oscillator_create(MskContainer *parent);
-MskModule *msk_pitchtofrequency_create(MskContainer *parent);
-MskModule *msk_addmul_create(MskContainer *parent);
-MskModule *msk_add_create(MskContainer *parent);
-MskModule *msk_mul_create(MskContainer *parent);
-MskModule *msk_voiceactive_create(MskContainer *parent);
-MskModule *msk_voicepitch_create(MskContainer *parent);
-MskModule *msk_voicevelocity_create(MskContainer *parent);
+MskModule MSK_API *msk_input_create(MskContainer *parent);
+MskModule MSK_API *msk_output_create(MskContainer *parent);
+MskModule MSK_API *msk_voice_create(MskContainer *parent);
+MskModule MSK_API *msk_constant_create(MskContainer *parent);
+MskModule MSK_API *msk_autoconstant_create(MskContainer *parent);
+MskModule MSK_API *msk_oscillator_create(MskContainer *parent);
+MskModule MSK_API *msk_pitchtofrequency_create(MskContainer *parent);
+MskModule MSK_API *msk_addmul_create(MskContainer *parent);
+MskModule MSK_API *msk_add_create(MskContainer *parent);
+MskModule MSK_API *msk_mul_create(MskContainer *parent);
+MskModule MSK_API *msk_voiceactive_create(MskContainer *parent);
+MskModule MSK_API *msk_voicepitch_create(MskContainer *parent);
+MskModule MSK_API *msk_voicevelocity_create(MskContainer *parent);
 
 
-MskContainer *msk_world_create(gulong sample_rate, gsize block_size);
-void msk_world_prepare(MskContainer *container);
-void msk_world_run(MskContainer *container);
-void msk_message_note_on(MskWorld *world, short note, short velocity);
-void msk_message_note_off(MskWorld *world, short note, short velocity);
+MskContainer MSK_API *msk_world_create(gulong sample_rate, gsize block_size);
+void MSK_API msk_world_prepare(MskContainer *container);
+void MSK_API msk_world_run(MskContainer *container);
+void MSK_API msk_message_note_on(MskWorld *world, short note, short velocity);
+void MSK_API msk_message_note_off(MskWorld *world, short note, short velocity);
 
 
 // TODO: delete
-void msk_create_buffers_on_module(MskModule *module);
-void msk_destroy_buffers_on_module(MskModule *module);
-void msk_container_activate(MskContainer *self);
-void msk_container_deactivate(MskContainer *self);
+void MSK_API msk_create_buffers_on_module(MskModule *module);
+void MSK_API msk_destroy_buffers_on_module(MskModule *module);
+void MSK_API msk_container_activate(MskContainer *self);
+void MSK_API msk_container_deactivate(MskContainer *self);

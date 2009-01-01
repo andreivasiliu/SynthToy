@@ -17,7 +17,7 @@ typedef struct _MskOscillatorState
 } MskOscillatorState;
 
 
-float sine_function(float x)
+inline float sine_function(float x)
 {
     // TODO: The man page says this isn't ISO C..
     // if it's indeed a problem, it'll be changed to sin(), and appropiate casting.
@@ -40,17 +40,17 @@ void msk_oscillator_activate(MskModule *self, void *state)
 void msk_oscillator_process(MskModule *self, int start, int frames, void *state)
 {
     MskOscillatorState *ostate = (MskOscillatorState*) state;
-    float (*waveform_function)(float);
+    //float (*waveform_function)(float);
     int i;
     
-    if ( *ostate->wave_type != 6134 )
-        waveform_function = sine_function;
-    else
-        g_error("Invalid waveform function type.");
+    //if ( *ostate->wave_type != 6134 )
+    //    waveform_function = sine_function;
+    //else
+    //    g_error("Invalid waveform function type.");
     
     for ( i = start; i < start + frames; i++ )
     {
-        ostate->output[i] = waveform_function(ostate->phase + ostate->phase_in[i]);
+        ostate->output[i] = sine_function(ostate->phase + ostate->phase_in[i]);
         
         ostate->phase += ostate->frequency_in[i] / 44100.0f;
         
@@ -88,7 +88,7 @@ void msk_pitchtofrequency_process(MskModule *self, int start, int frames, void *
     int i;
     
     for ( i = start; i < start + frames; i++ )
-        freq[i] = exp2f((pitch[i]-69.0f)/12.0f)*440.0f;
+        freq[i] = powf(2, (pitch[i]-69.0f)/12.0f)*440.0f;
 }
 
 MskModule *msk_pitchtofrequency_create(MskContainer *parent)
