@@ -12,12 +12,14 @@ typedef struct _MskOscillatorState
     float *output;
     const int *wave_type;
     
+    float *table;
+    
     float phase;
     
 } MskOscillatorState;
 
 
-inline float sine_function(float x)
+static inline float sine_function(float x)
 {
     // TODO: The man page says this isn't ISO C..
     // if it's indeed a problem, it'll be changed to sin(), and appropiate casting.
@@ -52,13 +54,57 @@ void msk_oscillator_process(MskModule *self, int start, int frames, void *state)
     {
         ostate->output[i] = sine_function(ostate->phase + ostate->phase_in[i]);
         
-        ostate->phase += ostate->frequency_in[i] / 44100.0f;
+        ostate->phase += /*ostate->frequency_in[i]*/ 440 / 44100.0f;
         
         // Rudimentary (but faster) modulo.
-        while ( ostate->phase > 1.0f )
-            ostate->phase -= 1.0f;
+        if ( ostate->phase > 20000.f )
+            while ( ostate->phase > 1.0f )
+                ostate->phase -= 1.0f;
     }
 }
+
+
+void msk_oscillator2_activate(MskModule *self, void *state)
+{
+    MskOscillatorState *ostate = state;
+    int i;
+    
+    ostate->phase = 0;
+    ostate->table = g_new0(float, 1000);
+    
+    for ( i = 0; i < 1000; i++ )
+    {
+        ostate->table[i] = sine_function((float)i / 1000.0f);
+    }
+}
+
+void msk_oscillator2_process(MskModule *self, int start, int frames, void *state)
+{
+    float *output = msk_module_get_output_buffer(self, "output") + start;
+    const float *phase_in = msk_module_get_input_buffer(self, "phase") + start;
+    const float *frequency = msk_module_get_input_buffer(self, "frequency") + start;
+    
+    MskOscillatorState *ostate = state;
+    
+    while ( frames-- )
+    {
+        float phase = (ostate->phase + *phase_in++);
+        int iphase = (int)(phase);
+        int index1 = iphase % 1000;
+        int index2 = (iphase + 1) % 1000;
+        float frac = phase - (float)(int)phase;
+        
+        *output++ = ostate->table[index1] +
+            frac * (ostate->table[index2] - ostate->table[index1]);
+        
+        ostate->phase += *frequency++ / (44.100f);
+        
+        if ( ostate->phase >= 1000.0f )
+            while ( ostate->phase > 1000.0f )
+                ostate->phase -= 1000.0f;
+    }
+}
+
 
 
 MskModule *msk_oscillator_create(MskContainer *parent)
@@ -66,8 +112,8 @@ MskModule *msk_oscillator_create(MskContainer *parent)
     MskModule *mod;
     
     mod = msk_module_create(parent, "oscillator",
-                            msk_oscillator_process,
-                            msk_oscillator_activate,
+                            msk_oscillator2_process,
+                            msk_oscillator2_activate,
                             NULL,
                             sizeof(MskOscillatorState));
     
