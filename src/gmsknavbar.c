@@ -116,7 +116,7 @@ int gmsk_paint_navbar_item(cairo_t *cr, MskContainer *container)
     cairo_set_source_rgb(cr, 1, 1, 1);
     paint_pango_layout(cr, layout);
     
-    return width + text_width + 8;
+    return width + text_width + 9;
 }
 
 void gmsk_paint_navbar(cairo_t *cr)
