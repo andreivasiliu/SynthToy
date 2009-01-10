@@ -6,16 +6,19 @@ OBJECTS  = mskmodule.o mskworld.o mskcontainer.o mskconstant.o mskoscillator.o \
            mskaddmul.o mskinstrument.o
 
 MODEXT = .dll
+EXEEXT = .exe
 
-BIN=../msk0${MODEXT}
+BIN  = ../msk0${MODEXT}
+TEST = benchmark${EXEEXT}
 
-all: ${BIN}
+
+all: ${BIN} ${TEST}
 
 ${BIN}: ${OBJECTS}
 	gcc -shared -o $@ $^ ${L_FLAGS}
 
-test: ${OBJECTS} ${OBJ_TEST}
-	gcc -o test $^ ${L_FLAGS}
+${TEST}: ${OBJECTS} ${OBJ_TEST}
+	gcc -o $@ $^ ${L_FLAGS}
 
 msk%.o: msk%.c msk0.h mskinternal.h
 	gcc -c $< ${C_FLAGS}

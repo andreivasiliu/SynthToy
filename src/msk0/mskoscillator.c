@@ -99,9 +99,7 @@ void msk_oscillator2_process(MskModule *self, int start, int frames, void *state
         
         ostate->phase += *frequency++ / (44.100f);
         
-        if ( ostate->phase >= 1000.0f )
-            while ( ostate->phase > 1000.0f )
-                ostate->phase -= 1000.0f;
+        ostate->phase -= (float)((int)(ostate->phase / 1000) * 1000);
     }
 }
 
@@ -133,8 +131,19 @@ void msk_pitchtofrequency_process(MskModule *self, int start, int frames, void *
     float *freq = msk_module_get_output_buffer(self, "frequency");
     int i;
     
+    // This cache is just a temporary hack until I get message ports.
+    float old_in = -1, cached_out = 0;
+    
     for ( i = start; i < start + frames; i++ )
-        freq[i] = powf(2, (pitch[i]-69.0f)/12.0f)*440.0f;
+    {
+        if ( pitch[i] != old_in )
+        {
+            old_in = pitch[i];
+            cached_out = powf(2, (pitch[i]-69.0f)/12.0f)*440.0f;
+        }
+        
+        freq[i] = cached_out;
+    }
 }
 
 MskModule *msk_pitchtofrequency_create(MskContainer *parent)
