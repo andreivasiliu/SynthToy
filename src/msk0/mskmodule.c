@@ -45,6 +45,9 @@ void msk_module_destroy(MskModule *mod)
     /* Unlink from world. */
     if ( mod->parent )
         mod->parent->module_list = g_list_remove(mod->parent->module_list, mod);
+    // temp
+    //if ( mod->parent )
+    //    mod->parent->process_order = g_list_remove(mod->parent->process_order, mod);
     
     /* Free ports. */
     // TODO

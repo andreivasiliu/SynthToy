@@ -85,8 +85,6 @@ void write_audio(ModWinmmState *state, void *memory_block)
         
         printf("Error2 text: %s.\n", buf);
     }
-
-    OutputDebugStringA("Wrote something...\n");
 }
 
 
@@ -167,6 +165,8 @@ void modwinmm_fini(void *state)
 {
     ModWinmmState *mw_state = (ModWinmmState*) state;
     
+    (void) mw_state; // unused
+    
     //free(mw_state);
 }
     
@@ -174,7 +174,7 @@ void modwinmm_fini(void *state)
 void modwinmm_activate(void *state)
 {
     ModWinmmState *mw_state = (ModWinmmState*) state;
-    int midi_dev, i;
+    unsigned int midi_dev, i;
     
     /* MIDI In */
     for ( midi_dev = 0; midi_dev < midiInGetNumDevs(); midi_dev++ )

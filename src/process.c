@@ -91,9 +91,11 @@ void process_func(float *in, float *out, int nframes, int sample_rate, void *dat
     
     for ( i = 0; i < nframes; i += 256 )
     {
+        g_mutex_lock(lock_for_model);
         g_timer_start(timer);
         msk_world_run(cont);
         g_timer_stop(timer);
+        g_mutex_unlock(lock_for_model);
         
         processing_time += g_timer_elapsed(timer, NULL);
         
