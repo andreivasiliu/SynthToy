@@ -8,6 +8,7 @@
 
 /* Note: This file was created purely for testing. It will go away. */
 
+GMutex *lock_for_model;
 
 extern void virkb_noteon(int note);
 extern void virkb_noteoff(int note);
@@ -76,6 +77,7 @@ void aural_init()
     init_channel();
     
     timer = g_timer_new();
+    lock_for_model = g_mutex_new();
     
     msk_world_prepare(cont);
 }

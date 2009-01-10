@@ -37,8 +37,6 @@ struct _MskWorld
     MskContainer *root;
     
     GList *instruments;
-    
-    GMutex *lock_for_model;
 };
 
 

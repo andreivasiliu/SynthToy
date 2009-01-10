@@ -15,6 +15,8 @@
  * This is just a quick-and-dirty implementation, to help with tests.
  */
 
+extern GMutex *lock_for_model;
+
 extern MskContainer *cont;
 MskContainer *current_container;
 
@@ -63,6 +65,8 @@ GMPort *dragged_port;
 int dragged_port_is_output;
 int dragging_port_to_x;
 int dragging_port_to_y;
+
+GraphicalModule *selected_module;
 
 void draw_module(MskModule *mod, long x, long y)
 {
@@ -413,6 +417,19 @@ void paint_editor(GtkWidget *widget)
 //            cairo_paint_with_alpha(cr, 0.8);
 //        else
             cairo_paint(cr);
+        
+        if ( gmod == selected_module )
+        {
+            cairo_save(cr);
+            cairo_set_line_width(cr, 1);
+            cairo_translate(cr, gmod->x, gmod->y);
+            
+            cairo_rectangle(cr, 1.5, 1.5, gmod->width - 3, gmod->height - 3);
+            cairo_set_source_rgb(cr, 0.4, 0, 0.6);
+            cairo_stroke(cr);
+            
+            cairo_restore(cr);
+        }
     }
     
     draw_connections(cr);
@@ -520,16 +537,14 @@ GMPort *get_gmport_at(GraphicalModule *gmod, int x, int y, int *type)
 
 void gmsk_connect_gmports(GMPort *output, GMPort *input)
 {
-    GMutex *mutex = output->owner->mod->world->lock_for_model;
-    
-    g_mutex_lock(mutex);
+    g_mutex_lock(lock_for_model);
     
     msk_container_deactivate(cont);
     msk_connect_ports(output->owner->mod, output->port->name,
                       input->owner->mod, input->port->name);
     msk_container_activate(cont);
     
-    g_mutex_unlock(mutex);
+    g_mutex_unlock(lock_for_model);
 }
 
 
@@ -630,19 +645,27 @@ G_MODULE_EXPORT gboolean
             return TRUE;
         }
         
+        /* Select the module and bring it to the top. */
+        selected_module = gmod;
+        graphical_modules = g_list_remove(graphical_modules, gmod);
+        graphical_modules = g_list_append(graphical_modules, gmod);
+        
+        // Print some info about it.
+        g_print("Module: '%s', at x:%d, y:%d.\n", gmod->mod->name,
+                (int) gmod->x, (int) gmod->y);
+        
         /* Double-click on a container? */
         if ( event->type == GDK_2BUTTON_PRESS )
         {
             if ( gmod->mod->container )
                 current_container = gmod->mod->container;
         }
-        
-        dragged_module = gmod;
-        drag_grip_x = event->x - gmod->x;
-        drag_grip_y = event->y - gmod->y;
-        
-        graphical_modules = g_list_remove(graphical_modules, gmod);
-        graphical_modules = g_list_append(graphical_modules, gmod);
+        else
+        {
+            dragged_module = gmod;
+            drag_grip_x = event->x - gmod->x;
+            drag_grip_y = event->y - gmod->y;
+        }
         
         gtk_widget_queue_draw(GTK_WIDGET(object));
         

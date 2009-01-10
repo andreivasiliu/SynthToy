@@ -20,7 +20,7 @@ MskContainer *msk_world_create(gulong sample_rate, gsize block_size)
     world->root = msk_container_create(NULL);
     world->root->module->world = world;
     
-    world->lock_for_model = g_mutex_new();
+    //world->lock_for_model = g_mutex_new();
     
     return world->root;
 }
@@ -104,13 +104,13 @@ void msk_world_prepare(MskContainer *container)
 
 void msk_world_run(MskContainer *container)
 {
-    g_mutex_lock(container->module->world->lock_for_model);
+    //g_mutex_lock(container->module->world->lock_for_model);
     
     msk_container_process(container, 0, container->module->world->block_size, 0);
     //container->module->process(container->module, 0, container->module->world->block_size, NULL);
     // ..
     
-    g_mutex_unlock(container->module->world->lock_for_model);
+    //g_mutex_unlock(container->module->world->lock_for_model);
 }
 
 void msk_unprepare_container(MskContainer *container)
