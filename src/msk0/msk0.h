@@ -76,6 +76,7 @@ struct _MskInstrument
     short *voice_note;
     short *voice_velocity;
     
+    int last_voice;
     
     /* A list of all MskParameters. */
     GList *parameter_list; //unused yet
@@ -175,6 +176,7 @@ MskModule MSK_API *msk_mul_create(MskContainer *parent);
 MskModule MSK_API *msk_voiceactive_create(MskContainer *parent);
 MskModule MSK_API *msk_voicepitch_create(MskContainer *parent);
 MskModule MSK_API *msk_voicevelocity_create(MskContainer *parent);
+MskModule MSK_API *msk_adsr_create(MskContainer *parent);
 
 
 MskContainer MSK_API *msk_world_create(gulong sample_rate, gsize block_size);

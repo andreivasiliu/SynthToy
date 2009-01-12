@@ -70,36 +70,36 @@ void msk_oscillator2_activate(MskModule *self, void *state)
     int i;
     
     ostate->phase = 0;
-    ostate->table = g_new0(float, 1000);
+    ostate->table = g_new0(float, 1024);
     
-    for ( i = 0; i < 1000; i++ )
+    for ( i = 0; i < 1024; i++ )
     {
-        ostate->table[i] = sine_function((float)i / 1000.0f);
+        ostate->table[i] = sine_function((float)i / 1024.0f);
     }
 }
 
 void msk_oscillator2_process(MskModule *self, int start, int frames, void *state)
 {
-    float *output = msk_module_get_output_buffer(self, "output") + start;
-    const float *phase_in = msk_module_get_input_buffer(self, "phase") + start;
-    const float *frequency = msk_module_get_input_buffer(self, "frequency") + start;
+    float *output = (float *)msk_module_get_output_buffer(self, "output") + start;
+    const float *phase_in = (const float *)msk_module_get_input_buffer(self, "phase") + start;
+    const float *frequency = (const float *)msk_module_get_input_buffer(self, "frequency") + start;
     
     MskOscillatorState *ostate = state;
     
     while ( frames-- )
     {
-        float phase = (ostate->phase + *phase_in++);
+        float phase = (ostate->phase + *phase_in++ * 1024);
         int iphase = (int)(phase);
-        int index1 = iphase % 1000;
-        int index2 = (iphase + 1) % 1000;
+        int index1 = iphase & 1023;
+        int index2 = (iphase + 1) & 1023;
         float frac = phase - (float)(int)phase;
         
         *output++ = ostate->table[index1] +
             frac * (ostate->table[index2] - ostate->table[index1]);
         
-        ostate->phase += *frequency++ / (44.100f);
+        ostate->phase += *frequency++ / (44100.0f / 1024.0f);
         
-        ostate->phase -= (float)((int)(ostate->phase / 1000) * 1000);
+        ostate->phase -= (float)((int)(ostate->phase / 1024) * 1024);
     }
 }
 

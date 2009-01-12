@@ -90,7 +90,7 @@ MskContainer *macro_simple_sine_generator(MskContainer *parent)
 {
     MskContainer *macro;
     MskModule *osc, *pitch, *velocity, *active;
-    MskModule *p2f, *mul1, *mul2, *out;
+    MskModule *p2f, *adsr, *mul1, *mul2, *out;
     
     /* Create them. */
     macro = msk_instrument_create(parent);
@@ -101,6 +101,7 @@ MskContainer *macro_simple_sine_generator(MskContainer *parent)
     active = msk_voiceactive_create(macro);
     
     p2f = msk_pitchtofrequency_create(macro);
+    adsr = msk_adsr_create(macro);
     mul1 = msk_mul_create(macro);
     mul2 = msk_mul_create(macro);
     out = msk_output_create(macro);
@@ -109,8 +110,9 @@ MskContainer *macro_simple_sine_generator(MskContainer *parent)
     draw_module(osc, 245, 65);
     draw_module(pitch, 30, 65);
     draw_module(velocity, 370, 170);
-    draw_module(active, 280, 130);
+    draw_module(active, 195, 135);
     draw_module(p2f, 110, 65);
+    draw_module(adsr, 285, 135);
     draw_module(mul1, 385, 90);
     draw_module(mul2, 470, 115);
     draw_module(out, 555, 115);
@@ -120,7 +122,8 @@ MskContainer *macro_simple_sine_generator(MskContainer *parent)
     msk_connect_ports(p2f, "frequency", osc, "frequency");
     
     msk_connect_ports(osc, "output", mul1, "in1");
-    msk_connect_ports(active, "gate", mul1, "in2");
+    msk_connect_ports(active, "gate", adsr, "gate");
+    msk_connect_ports(adsr, "out", mul1, "in2");
     
     msk_connect_ports(mul1, "out", mul2, "in1");
     msk_connect_ports(velocity, "velocity", mul2, "in2");
@@ -214,6 +217,12 @@ GtkWidget *gmsk_create_menu()
     gtk_signal_connect(GTK_OBJECT(item), "activate",
                        GTK_SIGNAL_FUNC(on_mi_createmod_activate),
                        &msk_voicevelocity_create);
+    
+    item = gtk_menu_item_new_with_label("ADSR Envelope");
+    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
+    gtk_signal_connect(GTK_OBJECT(item), "activate",
+                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
+                       &msk_adsr_create);
     
     
     item = gtk_menu_item_new_with_label("Create macro");
