@@ -111,11 +111,7 @@ MskModule *msk_voiceactive_create(MskContainer *parent)
 {
     MskModule *mod;
     
-    mod = msk_module_create(parent, "voiceactive",
-                            msk_voiceactive_process,
-                            NULL,
-                            NULL,
-                            0);
+    mod = msk_module_create(parent, "voiceactive", msk_voiceactive_process);
     
     msk_add_output_port(mod, "gate", MSK_AUDIO_DATA);
     
@@ -150,11 +146,7 @@ MskModule *msk_voicepitch_create(MskContainer *parent)
 {
     MskModule *mod;
     
-    mod = msk_module_create(parent, "voicepitch",
-                            msk_voicepitch_process,
-                            NULL,
-                            NULL,
-                            0);
+    mod = msk_module_create(parent, "voicepitch", msk_voicepitch_process);
     
     msk_add_output_port(mod, "pitch", MSK_AUDIO_DATA);
     
@@ -190,10 +182,7 @@ MskModule *msk_voicevelocity_create(MskContainer *parent)
     MskModule *mod;
     
     mod = msk_module_create(parent, "voicevelocity",
-                            msk_voicevelocity_process,
-                            NULL,
-                            NULL,
-                            0);
+                            msk_voicevelocity_process);
     
     msk_add_output_port(mod, "velocity", MSK_AUDIO_DATA);
     
@@ -271,11 +260,9 @@ MskModule *msk_adsr_create(MskContainer *parent)
 {
     MskModule *mod;
     
-    mod = msk_module_create(parent, "ADSR",
-                            msk_adsr_process,
-                            msk_adsr_activate,
-                            NULL,
-                            sizeof(MskADSRState));
+    mod = msk_module_create(parent, "ADSR", msk_adsr_process);
+    
+    msk_add_state(mod, msk_adsr_activate, NULL, sizeof(MskADSRState));
     
     msk_add_input_port(mod, "gate", MSK_AUDIO_DATA, 0.0f);
     msk_add_output_port(mod, "out", MSK_AUDIO_DATA);

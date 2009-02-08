@@ -27,6 +27,8 @@ typedef void (*MskActivateCallback)(MskModule *self, void *state);
 typedef void (*MskDeactivateCallback)(MskModule *self, void *state);
 typedef void (*MskGlobalActivateCallback)(MskModule *self, void *state);
 typedef void (*MskGlobalDeactivateCallback)(MskModule *self, void *state);
+typedef void (*MskDynamicPortAddCallback)(MskModule *self);
+typedef void (*MskDynamicPortRemoveCallback)(MskModule *self);
 
 
 struct _MskWorld
@@ -114,11 +116,16 @@ struct _MskModule
     MskContainer *parent;
     MskContainer *container;
     
+    /* Callbacks */
     MskProcessCallback process;
     MskActivateCallback activate;
     MskDeactivateCallback deactivate;
+    
     MskGlobalActivateCallback global_activate;
     MskGlobalDeactivateCallback global_deactivate;
+    
+    MskDynamicPortAddCallback dynamic_port_add;
+    MskDynamicPortRemoveCallback dynamic_port_remove;
     
     GList *in_ports;
     GList *out_ports;

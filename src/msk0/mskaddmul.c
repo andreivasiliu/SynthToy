@@ -4,44 +4,19 @@
 #include "mskinternal.h"
 
 
-typedef struct _MskAddmulState
-{
-    const float *in;
-    float *out;
-    
-    const float *add;
-    const float *mul;
-    
-} MskAddmulState;
 
-
-void msk_addmul_activate(MskModule *self, void *state)
-{
-    MskAddmulState *astate = state;
-    
-    astate->in  = msk_module_get_input_buffer(self, "input");
-    astate->out = msk_module_get_output_buffer(self, "output");
-    astate->add = msk_module_get_property_buffer(self, "add");
-    astate->mul = msk_module_get_property_buffer(self, "mul");
-}
-
-/*
-void msk_addmul_process(MskModule *self, int start, int frames, void *state)
-{
-    MskAddmulState *astate = state;
-    int i;
-    
-    for ( i = start; i < start + frames; i++ )
-        astate->out[i] = (astate->in[i] + *astate->add) * *astate->mul;
-}*/
+/**********************************************************************
+ * Module: AddMul
+ * Ports: input -> output
+ * Properties: add, mul
+ **********************************************************************/
 
 void msk_addmul_process(MskModule *self, int start, int frames, void *state)
 {
-    MskAddmulState *astate = state;
-    const float *in = astate->in;
-    float *out = astate->out;
-    const float add = *astate->add;
-    const float mul = *astate->mul;
+    const float *in = msk_module_get_input_buffer(self, "input");
+    float *out      = msk_module_get_output_buffer(self, "output");
+    const float add = *(float*)msk_module_get_property_buffer(self, "add");
+    const float mul = *(float*)msk_module_get_property_buffer(self, "mul");
     int i;
     
     for ( i = start; i < start + frames; i++ )
@@ -52,19 +27,23 @@ MskModule *msk_addmul_create(MskContainer *parent)
 {
     MskModule *mod;
     
-    mod = msk_module_create(parent, "addmul",
-                            msk_addmul_process,
-                            msk_addmul_activate,
-                            NULL,
-                            sizeof(MskAddmulState));
+    mod = msk_module_create(parent, "addmul", msk_addmul_process);
     
-    msk_add_input_port(mod, "input", MSK_AUDIO_DATA, 0.0f);
-    msk_add_output_port(mod, "output", MSK_AUDIO_DATA);
+    msk_add_input_port(mod, "in", MSK_AUDIO_DATA, 0.0f);
+    msk_add_output_port(mod, "out", MSK_AUDIO_DATA);
     msk_add_float_property(mod, "add", 0.0f);
     msk_add_float_property(mod, "mul", 1.0f);
     
     return mod;
 }
+
+
+
+/**********************************************************************
+ * Module: Add
+ * Ports: in#, ... -> out
+ * Properties: n/a
+ **********************************************************************/
 
 void msk_add_process(MskModule *self, int start, int frames, void *state)
 {
@@ -81,18 +60,22 @@ MskModule *msk_add_create(MskContainer *parent)
 {
     MskModule *mod;
     
-    mod = msk_module_create(parent, "add",
-                            msk_add_process,
-                            NULL,
-                            NULL,
-                            0);
+    mod = msk_module_create(parent, "add", msk_add_process);
     
-    msk_add_input_port(mod, "in1", MSK_AUDIO_DATA, 0.0f);
-    msk_add_input_port(mod, "in2", MSK_AUDIO_DATA, 0.0f);
+    msk_add_input_port(mod, "in#", MSK_AUDIO_DATA, 0.0f);
+    msk_add_input_port(mod, "in#", MSK_AUDIO_DATA, 0.0f);
     msk_add_output_port(mod, "out", MSK_AUDIO_DATA);
     
     return mod;
 }
+
+
+
+/**********************************************************************
+ * Module: Mul
+ * Ports: in#, ... -> out
+ * Properties: n/a
+ **********************************************************************/
 
 void msk_mul_process(MskModule *self, int start, int frames, void *state)
 {
@@ -109,11 +92,7 @@ MskModule *msk_mul_create(MskContainer *parent)
 {
     MskModule *mod;
     
-    mod = msk_module_create(parent, "mul",
-                            msk_mul_process,
-                            NULL,
-                            NULL,
-                            0);
+    mod = msk_module_create(parent, "mul", msk_mul_process);
     
     msk_add_input_port(mod, "in1", MSK_AUDIO_DATA, 0.0f);
     msk_add_input_port(mod, "in2", MSK_AUDIO_DATA, 0.0f);

@@ -4,10 +4,11 @@
 /* mskmodule.c */
 
 extern MskModule *msk_module_create(MskContainer *parent, gchar *name,
-                                    MskProcessCallback process,
-                                    MskActivateCallback activate,
-                                    MskDeactivateCallback deactivate,
-                                    gsize state_size);
+                                    MskProcessCallback process);
+
+void msk_add_state(MskModule *module, MskActivateCallback activate,
+                   MskDeactivateCallback deactivate, gsize state_size);
+
 void msk_add_global_state(MskModule *module,
                           MskGlobalActivateCallback global_activate,
                           MskGlobalActivateCallback global_deactivate,

@@ -80,12 +80,7 @@ MskContainer *msk_container_create(MskContainer *parent)
     MskModule *module;
     
     // Create the shell/wrapper/outside/whatever module.
-    module = msk_module_create(parent, "container",
-                               NULL,
-//                               msk_container_process, // ?
-                               NULL,
-                               NULL,
-                               0);
+    module = msk_module_create(parent, "container", NULL);
     
     container = g_new0(MskContainer, 1);
     container->module = module;
@@ -157,14 +152,10 @@ MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint t
     MskPort *interior_port;
     MskPort *exterior_port;
     
-    mod = msk_module_create(parent, "input",
-                            NULL,
-                            NULL,
-                            NULL,
-                            0);
+    mod = msk_module_create(parent, "input", NULL);
     
-    interior_port = msk_add_output_port(mod, name, type);
     exterior_port = msk_add_input_port(parent->module, name, type, 0.0f);  // ?
+    interior_port = msk_add_output_port(mod, exterior_port->name, type);
     
     msk_meld_ports(exterior_port, interior_port);
     
@@ -173,7 +164,7 @@ MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint t
 
 MskModule *msk_input_create(MskContainer *parent)
 {
-    return msk_input_create_with_name(parent, "in", MSK_AUDIO_DATA);
+    return msk_input_create_with_name(parent, "in#", MSK_AUDIO_DATA);
 }
 
 void msk_output_process(MskModule *self, int start, int frames, void *state)
@@ -194,14 +185,10 @@ MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint 
     MskPort *interior_port;
     MskPort *exterior_port;
     
-    mod = msk_module_create(parent, "output",
-                            msk_output_process,
-                            NULL,
-                            NULL,
-                            0);
+    mod = msk_module_create(parent, "output", msk_output_process);
     
-    interior_port = msk_add_input_port(mod, name, type, 0.0f);  // ?
     exterior_port = msk_add_output_port(parent->module, name, type);
+    interior_port = msk_add_input_port(mod, exterior_port->name, type, 0.0f);  // ?
     
     mod->mix_to = exterior_port;
     
@@ -213,7 +200,7 @@ MskModule *msk_output_create_with_name(MskContainer *parent, gchar *name, guint 
 
 MskModule *msk_output_create(MskContainer *parent)
 {
-    return msk_output_create_with_name(parent, "out", MSK_AUDIO_DATA);
+    return msk_output_create_with_name(parent, "out#", MSK_AUDIO_DATA);
 }
 
 
@@ -232,11 +219,7 @@ MskModule *msk_voice_create(MskContainer *parent)
 {
     MskModule *mod;
     
-    mod = msk_module_create(parent, "voice",
-                            msk_voice_process,
-                            NULL,
-                            NULL,
-                            0);
+    mod = msk_module_create(parent, "voice", msk_voice_process);
     
     msk_add_output_port(mod, "nr", MSK_AUDIO_DATA);
     
@@ -254,12 +237,7 @@ MskContainer *msk_instrument_create(MskContainer *parent)
     MskModule *module;
     
     // Create the shell/wrapper/outside/whatever module.
-    module = msk_module_create(parent, "instrument",
-                               NULL,
-//                               msk_container_process, // ?
-                               NULL,
-                               NULL,
-                               0);
+    module = msk_module_create(parent, "instrument", NULL);
     
     container = g_new0(MskContainer, 1);
     container->module = module;

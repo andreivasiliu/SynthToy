@@ -128,7 +128,7 @@ MskContainer *macro_simple_sine_generator(MskContainer *parent)
     msk_connect_ports(mul1, "out", mul2, "in1");
     msk_connect_ports(velocity, "velocity", mul2, "in2");
     
-    msk_connect_ports(mul2, "out", out, "out");
+    msk_connect_ports(mul2, "out", out, "out1");
     
     return macro;
 }

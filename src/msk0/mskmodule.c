@@ -1,15 +1,14 @@
 #include <glib.h>
+#include <glib/gprintf.h>
 #include <string.h>
+#include <math.h> // for log10()
 
 #include "msk0.h"
 #include "mskinternal.h"
 
 
 MskModule *msk_module_create(MskContainer *parent, gchar *name,
-                             MskProcessCallback process,
-                             MskActivateCallback activate,
-                             MskDeactivateCallback deactivate,
-                             gsize state_size)
+                             MskProcessCallback process)
 {
     MskModule *mod;
     
@@ -17,9 +16,6 @@ MskModule *msk_module_create(MskContainer *parent, gchar *name,
     mod->name = g_strdup(name);
     mod->parent = parent;
     mod->process = process;
-    mod->activate = activate;
-    mod->deactivate = deactivate;
-    mod->state_size = state_size;
     
     if ( parent )
     {
@@ -105,14 +101,48 @@ void msk_module_deactivate(MskModule *mod)
 }
 
 
+void msk_add_state(MskModule *module,
+                   MskActivateCallback activate,
+                   MskDeactivateCallback deactivate,
+                   gsize state_size)
+{
+    module->activate = activate;
+    module->deactivate = deactivate;
+    module->state_size = state_size;
+}
+
+
 void msk_add_global_state(MskModule *module,
                           MskGlobalActivateCallback global_activate,
                           MskGlobalDeactivateCallback global_deactivate,
                           gsize state_size)
 {
-    module->global_state_size = state_size;
     module->global_activate = global_activate;
     module->global_deactivate = global_deactivate;
+    module->global_state_size = state_size;
+}
+
+
+void msk_dynamic_ports(MskModule *module,
+                       MskDynamicPortAddCallback dynamic_port_add,
+                       MskDynamicPortRemoveCallback dynamic_port_remove)
+{
+    module->dynamic_port_add = dynamic_port_add;
+    module->dynamic_port_remove = dynamic_port_remove;
+}
+
+
+void msk_module_dynamic_port_add(MskModule *module)
+{
+    if ( module->dynamic_port_add )
+        module->dynamic_port_add(module);
+}
+
+
+void msk_module_dynamic_port_remove(MskModule *module)
+{
+    if ( module->dynamic_port_remove )
+        module->dynamic_port_remove(module);
 }
 
 
@@ -186,10 +216,12 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
     left_port = msk_module_get_output_port(left, left_port_name);
     right_port = msk_module_get_input_port(right, right_port_name);
     
-    if ( !left_port || !right_port )
-    {
-        g_error("An inexistent port was specified."); // TODO;
-    }
+    if ( !left_port )
+        g_error("Connect Ports: An inexistent left port name (%s) "
+                "was specified.", left_port_name); // TODO;
+    if ( !right_port )
+        g_error("Connect Ports: An inexistent right port name (%s) "
+                "was specified.", right_port_name); // TODO;
     
     // TODO: Check for same-container condition.
     
@@ -237,15 +269,78 @@ void msk_meld_ports(MskPort *inport, MskPort *outport)
 
 /*** Ports and properties ***/
 
+static int port_name_is_unique(MskModule *mod, const char *name)
+{
+    GList *item;
+    
+    for ( item = mod->in_ports; item; item = item->next )
+    {
+        MskPort *port = item->data;
+        
+        if ( !strcmp(port->name, name) )
+            return FALSE;
+    }
+    
+    for ( item = mod->out_ports; item; item = item->next )
+    {
+        MskPort *port = item->data;
+        
+        if ( !strcmp(port->name, name) )
+            return FALSE;
+    }
+    
+    return TRUE;
+}
+
+
+static char *make_port_name(MskModule *mod, const char *name)
+{
+    if ( !name || !name[0] )
+        g_error("Null port name given when constructing module '%s'.",
+                mod->name);
+    
+    /* If the last character is a #, replace it with a number. */
+    if ( name[strlen(name)-1] == '#' )
+    {
+        int number = 1;
+        
+        while ( 1 )
+        {
+            /* Lengths:
+             *   - name without leading '#': strlen(name) - 1
+             *   - number: (int)log10(number) + 1
+             *   - null terminator: 1
+             */
+            char unique_name[strlen(name) + (int)log10(number) + 1];
+            
+            memcpy(unique_name, name, strlen(name)-1);
+            g_sprintf(unique_name + strlen(name)-1, "%d", number);
+            
+            if ( port_name_is_unique(mod, unique_name) )
+                return g_strdup(unique_name);
+            
+            number++;
+        }
+    }
+    else
+    {
+        if ( !port_name_is_unique(mod, name) )
+            g_error("Duplicate port name (%s) given when constructing "
+                    "module '%s'.", name, mod->name);
+        
+        return g_strdup(name);
+    }
+}
+
 MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat default_value)
 {
     MskPort *port;
     
-    // TODO: check name conflicts, improve type of default_value.
+    // TODO: improve type of default_value.
     
     port = g_new0(MskPort, 1);
     
-    port->name = g_strdup(name);
+    port->name = make_port_name(mod, name);
     port->port_type = type;
     port->default_value = default_value;
     port->owner = mod;
@@ -259,7 +354,7 @@ MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat defa
         ac = msk_autoconstant_create(mod->parent);
         msk_module_set_float_property(ac, "value", default_value);
         
-        msk_connect_ports(ac, "output", mod, name);
+        msk_connect_ports(ac, "output", mod, port->name);
     }
     else
     {
@@ -273,11 +368,9 @@ MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type)
 {
     MskPort *port;
     
-    // TODO: check name conflicts.
-    
     port = g_new0(MskPort, 1);
     
-    port->name = g_strdup(name);
+    port->name = make_port_name(mod, name);
     port->port_type = type;
     port->owner = mod;
     
