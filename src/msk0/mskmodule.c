@@ -188,7 +188,7 @@ MskProperty *msk_module_get_property(MskModule *mod, gchar *prop_name)
 }
 
 
-void msk_disconnect_input(MskPort *in_port)
+void msk_disconnect_input_port(MskPort *in_port)
 {
     MskPort *out_port;
     
@@ -236,7 +236,7 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
     {
         MskModule *remote_mod = right_port->input.connection->owner;
         
-        msk_disconnect_input(right_port);
+        msk_disconnect_input_port(right_port);
         
         // TODO: strcmp sucks
         if ( !strcmp(remote_mod->name, "autoconstant") )
@@ -362,6 +362,31 @@ MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat defa
     }
     
     return port;
+}
+
+
+/* Currently only removes the last port. */
+void msk_remove_input_port(MskModule *mod)
+{
+    GList *last_item;
+    MskPort *in_port;
+    
+    last_item = g_list_last(mod->in_ports);
+    
+    if ( !last_item )
+        g_error("No input ports available to remove on module '%s'.",
+                mod->name);
+    
+    
+    /* Unlink. */
+    in_port = last_item->data;
+    if ( in_port->input.connection )
+        msk_disconnect_input_port(in_port);
+    mod->in_ports = g_list_delete_link(mod->in_ports, last_item);
+    
+    /* Free. */
+    g_free(in_port->name);
+    g_assert(in_port->buffer == NULL);
 }
 
 MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type)

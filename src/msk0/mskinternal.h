@@ -14,9 +14,14 @@ void msk_add_global_state(MskModule *module,
                           MskGlobalActivateCallback global_deactivate,
                           gsize state_size);
 
+void msk_dynamic_ports(MskModule *module,
+                       MskDynamicPortAddCallback dynamic_port_add,
+                       MskDynamicPortRemoveCallback dynamic_port_remove);
+
 void msk_module_activate(MskModule *mod);
 
 MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat default_value);
+void msk_remove_input_port(MskModule *mod);
 MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type);
 MskProperty *msk_add_float_property(MskModule *mod, gchar *name, gfloat value);
 MskProperty *msk_add_integer_property(MskModule *mod, gchar *name, gint value);
