@@ -7,7 +7,7 @@
   #define MSK_API __declspec(dllimport)
  #endif
 #else
-# define MSK_API 
+# define MSK_API
 #endif
 
 
@@ -30,14 +30,17 @@ typedef void (*MskGlobalDeactivateCallback)(MskModule *self, void *state);
 typedef void (*MskDynamicPortAddCallback)(MskModule *self);
 typedef void (*MskDynamicPortRemoveCallback)(MskModule *self);
 
+typedef void (*MskModuleLoadCallback)(GKeyFile *keyfile, MskModule *module, char *id);
+typedef void (*MskModuleSaveCallback)(GKeyFile *keyfile, MskModule *module, char *id);
+
 
 struct _MskWorld
 {
     guint sample_rate;
     gsize block_size;
-    
+
     MskContainer *root;
-    
+
     GList *instruments;
 };
 
@@ -45,21 +48,21 @@ struct _MskWorld
 struct _MskContainer
 {
     MskModule *module;
-    
+
     gboolean transparent;
-    
+
     /* Internal port-modules. */
     MskModule **in;
     MskModule **out;
-    
+
     GList *module_list;
-    
+
     guint voices;
     guint voice_size;
-    
+
     /* If the container is also an instrument. */
     MskInstrument *instrument;
-    
+
     /* Runtime information. */
     GList *process_order;
     guint current_voice;
@@ -70,16 +73,16 @@ struct _MskContainer
 struct _MskInstrument
 {
     MskContainer *container;
-    
+
     int channel; //unused yet
-    
+
     /* Voice information. */
     char *voice_active;
     short *voice_note;
     short *voice_velocity;
-    
+
     int last_voice;
-    
+
     /* A list of all MskParameters. */
     GList *parameter_list; //unused yet
 };
@@ -90,7 +93,7 @@ struct _MskPort
     gchar *name;
     guint port_type;
     MskModule *owner;
-    
+
     union
     {
         struct
@@ -103,7 +106,7 @@ struct _MskPort
             MskPort *connection;
         } input;
     };
-    
+
     gfloat default_value;
     void *buffer;
 };
@@ -115,31 +118,34 @@ struct _MskModule
     MskWorld *world;
     MskContainer *parent;
     MskContainer *container;
-    
+
     /* Callbacks */
     MskProcessCallback process;
     MskActivateCallback activate;
     MskDeactivateCallback deactivate;
-    
+
     MskGlobalActivateCallback global_activate;
     MskGlobalDeactivateCallback global_deactivate;
-    
+
     MskDynamicPortAddCallback dynamic_port_add;
     MskDynamicPortRemoveCallback dynamic_port_remove;
-    
+
     GList *in_ports;
     GList *out_ports;
     GList *properties;
-    
+
     GPtrArray *state;
     gsize state_size;
     void *global_state;
     gsize global_state_size;
-    
+
     gboolean prepared;
-    
+
     // TODO: this workaround must go away.
     MskPort *mix_to;
+
+    /* Temporary; used when saving to file. */
+    int save_id;
 };
 
 struct _MskProperty
@@ -187,11 +193,17 @@ MskModule MSK_API *msk_adsr_create(MskContainer *parent);
 
 
 MskContainer MSK_API *msk_world_create(gulong sample_rate, gsize block_size);
+void MSK_API msk_world_destroy(MskContainer *world);
 void MSK_API msk_world_prepare(MskContainer *container);
 void MSK_API msk_world_run(MskContainer *container);
 void MSK_API msk_message_note_on(MskWorld *world, short note, short velocity);
 void MSK_API msk_message_note_off(MskWorld *world, short note, short velocity);
 
+MskModule MSK_API *msk_factory_create_module(const char *name, MskContainer *parent);
+MskContainer MSK_API *msk_load_world_from_file(const gchar *filename,
+        MskModuleLoadCallback moduleload_callback, GError **error);
+gboolean MSK_API msk_save_world_to_file(MskContainer *container, const gchar *filename,
+        MskModuleSaveCallback modulesave_callback, GError **error);
 
 // TODO: delete
 void MSK_API msk_create_buffers_on_module(MskModule *module);

@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include <glib/gprintf.h>
+#include <stdlib.h>  // for exit()
 
 #include "header.h"
 
@@ -11,6 +12,7 @@
 
 extern void paint_keyboard(GtkWidget *widget);
 
+GtkWidget *main_window;
 GtkWidget *left_osc, *editor, *virkb, *vscale_pw, *vscale_mw;
 GtkWidget *properties_frame;
 #ifdef HAVE_JACK
@@ -106,7 +108,6 @@ gboolean pt_update(gpointer instance)
 int main(int argc, char *argv[])
 {
     GtkBuilder	*builder;
-    GtkWidget	*window;
     char	*errmsg;
     
     g_thread_init(NULL);
@@ -138,7 +139,7 @@ int main(int argc, char *argv[])
     if ( !gtk_builder_add_from_file(builder, "first.ui", NULL) )
         g_error("I can't find my 'first.ui' file.");
     
-    window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
+    main_window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
     left_osc = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea1"));
     editor = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea2"));
     virkb = GTK_WIDGET(gtk_builder_get_object(builder, "drawingarea3"));
@@ -148,7 +149,7 @@ int main(int argc, char *argv[])
     gtk_builder_connect_signals(builder, NULL);
     g_object_unref(G_OBJECT(builder));
     
-    gtk_widget_show(window);
+    gtk_widget_show(main_window);
     
     timeout = g_timeout_add(50, periodic_refresh, NULL);
     pt_timeout = g_timeout_add(1000, pt_update, NULL);

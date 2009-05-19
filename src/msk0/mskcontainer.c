@@ -99,7 +99,7 @@ MskContainer *msk_container_create(MskContainer *parent)
 }
 
 
-void msk_sort_module(MskModule *mod, GList **process_order)
+static void sort_module(MskModule *mod, GList **process_order)
 {
     GList *lport;
     
@@ -114,7 +114,7 @@ void msk_sort_module(MskModule *mod, GList **process_order)
         linked_mod = port->input.connection->owner;
         
         if ( !linked_mod->prepared )
-            msk_sort_module(linked_mod, process_order);
+            sort_module(linked_mod, process_order);
     }
     
     // TODO: change
@@ -136,7 +136,7 @@ gboolean msk_container_sort(MskContainer *container)
         MskModule *mod = lmod->data;
         
         if ( !mod->prepared )
-            msk_sort_module(mod, &process_order);
+            sort_module(mod, &process_order);
     }
     
     if ( container->process_order )

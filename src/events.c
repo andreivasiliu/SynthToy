@@ -1,6 +1,8 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
+#include "gmsk.h"
+
 
 /* TODO:
  *  - figure out mouse buttons
@@ -13,7 +15,7 @@ extern void virkb_mouseon(gdouble x, gdouble y);
 extern void virkb_mouseoff();
 extern void emulate_control_change(int channel, int control, int value);
 
-extern GtkWidget *properties_frame;
+extern GtkWidget *main_window, *properties_frame;
 
 static const guint compkey_notes[] =
 {
@@ -35,9 +37,9 @@ G_MODULE_EXPORT void on_drawingarea3_button_press_event(GtkObject *object,
                                                         GdkEventButton *event)
 {
     virkb_mouseon(event->x, event->y);
-    
+
     g_print("Button %d pressed.\n", event->button);
-    
+
     gtk_widget_grab_focus(GTK_WIDGET(object));
 }
 
@@ -51,9 +53,9 @@ G_MODULE_EXPORT gboolean on_drawingarea3_key_event(GtkObject *object,
                                                    GdkEventKey *event)
 {
     guint key, i;
-    
+
     key = gdk_keyval_to_lower(event->keyval);
-    
+
     for ( i = 0; compkey_notes[i]; i++ )
     {
         if ( compkey_notes[i] == key ||
@@ -63,11 +65,11 @@ G_MODULE_EXPORT gboolean on_drawingarea3_key_event(GtkObject *object,
                 virkb_keypress(i + 60);
             else if ( event->type == GDK_KEY_RELEASE )
                 virkb_keyrelease(i + 60);
-            
+
             return TRUE;
         }
     }
-    
+
     /* Propagate event further. */
     return FALSE;
 }
@@ -93,16 +95,112 @@ G_MODULE_EXPORT void on_vscale_mw_value_changed(GtkRange *range)
 
 G_MODULE_EXPORT void on_vscale_pw_value_changed(GtkObject *object)
 {
-    
+
 }
 
 G_MODULE_EXPORT void on_menuitem_properties_activate(GtkMenuItem *menuitem,
                                                      gpointer     user_data)
 {
     int visible;
-    
+
     /* A show/hide toggle for the Properties frame. */
     g_object_get(G_OBJECT(properties_frame), "visible", &visible, NULL);
     visible = !visible;
     g_object_set(G_OBJECT(properties_frame), "visible", visible, NULL);
+}
+
+
+G_MODULE_EXPORT void on_menuitem_quit_activate(GtkMenuItem *menuitem,
+                                               gpointer     user_data)
+{
+    // TODO: maybe ask if the file should be saved?
+
+    gtk_widget_destroy(main_window);
+}
+
+
+G_MODULE_EXPORT void on_menuitem_open_activate(GtkMenuItem *menuitem,
+                                               gpointer     user_data)
+{
+    GtkWidget *dialog;
+
+    dialog = gtk_file_chooser_dialog_new("Open File",
+                                         GTK_WINDOW(main_window),
+                                         GTK_FILE_CHOOSER_ACTION_OPEN,
+                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                         NULL);
+
+    if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+    {
+        char *filename;
+        GError *error = NULL;
+
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (dialog));
+        gmsk_load_world_from_file(filename, &error);
+
+        if ( error )
+        {
+            GtkWidget *dialog;
+
+            dialog = gtk_message_dialog_new(GTK_WINDOW(main_window),
+                    GTK_DIALOG_DESTROY_WITH_PARENT,
+                    GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s", error->message);
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+        }
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
+
+G_MODULE_EXPORT void on_menuitem_save_activate(GtkMenuItem *menuitem,
+                                               gpointer     user_data)
+{
+    GtkWidget *dialog;
+
+    dialog = gtk_file_chooser_dialog_new("Save File",
+                                         GTK_WINDOW(main_window),
+                                         GTK_FILE_CHOOSER_ACTION_SAVE,
+                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                         GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                         NULL);
+
+    gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER (dialog), TRUE);
+
+//    if (user_edited_a_new_document)
+//    {
+//        gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), default_folder_for_saving);
+        gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER (dialog), "Untitled");
+//    }
+//    else
+//        gtk_file_chooser_set_filename (GTK_FILE_CHOOSER (dialog), filename_for_existing_document);
+
+    if (gtk_dialog_run(GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
+    {
+        char *filename;
+        GError *error = NULL;
+
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (dialog));
+        gmsk_save_world_to_file(filename, &error);
+        g_free (filename);
+
+        if ( error )
+        {
+            GtkWidget *dialog;
+
+            dialog = gtk_message_dialog_new(GTK_WINDOW(main_window),
+                    GTK_DIALOG_DESTROY_WITH_PARENT,
+                    GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s", error->message);
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+        }
+    }
+
+    gtk_widget_destroy (dialog);
+
+
+
+    // TODO: this is just for testing.
 }

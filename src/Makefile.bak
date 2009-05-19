@@ -5,20 +5,17 @@ BINEXT = .exe
 MODEXT = .dll
 
 OBJ1 = first.o events.o virkb.o process.o gmskeditor.o gmskmenu.o  \
-       gmsknavbar.o msk0$(MODEXT) modwinmm$(MODEXT)
+       gmsknavbar.o gmsksaveload.o msk0$(MODEXT) modwinmm$(MODEXT)
 
 
 
-all: first.ui synthtoy${BINEXT}
+all: synthtoy${BINEXT}
 
 synthtoy$(BINEXT): ${OBJ1}
 	gcc -o $@ ${OBJ1} ${L_FLAGS}
 
 %.o: %.c header.h
 	gcc -c -g -Wall $< ${C_FLAGS}
-
-first.ui: first.glade
-	gtk-builder-convert first.glade first.ui
 
 modwinmm$(MODEXT):
 	@make -C mod-winmm -f Makefile.bak
