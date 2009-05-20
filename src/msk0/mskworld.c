@@ -25,13 +25,12 @@ MskContainer *msk_world_create(gulong sample_rate, gsize block_size)
     return world->root;
 }
 
-// TODO: this.
+// TODO: Quite obvious what to do, right?
 void msk_world_destroy(MskContainer *world)
 {
 
 
 }
-
 
 static void print_list_order(GList *items, gint indent)
 {
@@ -39,29 +38,39 @@ static void print_list_order(GList *items, gint indent)
 
     for ( item = items; item; item = item->next )
     {
-        MskModule *mod = item->data;
+        MskProcessor *task = item->data;
 
-        g_print(" %*s- %s\n", indent, "", mod->name);
-        if ( mod->container )
-            print_list_order(mod->container->process_order, indent + 2);
+        if ( task->type == MSK_PROCESSOR )
+        {
+            MskModule *mod = task->processor.module;
+
+            g_print(" %*s- %s\n", indent, "", mod->name);
+            if ( mod->container )
+                print_list_order(mod->container->processing_list, indent + 2);
+        }
+        else if ( task->type == MSK_ADAPTER )
+            g_print(" %*s- [port adapter]\n", indent, "");
     }
-
 }
 
 void msk_world_prepare(MskContainer *container)
 {
-    print_list_order(container->process_order, 0);
+    g_assert(container == container->module->world->root);
 
     msk_container_activate(container);
 }
 
 void msk_world_run(MskContainer *container)
 {
+    g_assert(container == container->module->world->root);
+
     msk_container_process(container, 0, container->module->world->block_size, 0);
 }
 
 void msk_world_unprepare(MskContainer *container)
 {
+    g_assert(container == container->module->world->root);
+
     msk_container_deactivate(container);
 }
 

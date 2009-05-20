@@ -1,5 +1,38 @@
 
-// Emptyish... for now.
+/* mskadapter.c */
+
+typedef void (*MskAdapterCallback)(void *source, void *destination, int start, int frames);
+
+typedef enum
+{
+    MSK_PROCESSOR,
+    MSK_ADAPTER,
+} MskProcessorType;
+
+/* This is used as a 'task' in a list of processing items. */
+struct _MskProcessor
+{
+    MskProcessorType type;
+
+    union
+    {
+        /* Type 1.. calls a module's 'process' callback. */
+        struct
+        {
+            MskModule *module;
+        } processor;
+
+        /* Type 2.. converts data between different port types */
+        struct
+        {
+            MskAdapterCallback callback;
+            MskPort *input_port;
+        } adapter;
+    };
+};
+
+MskAdapterCallback msk_get_adapter(guint source_port_type, guint destination_port_type);
+
 
 /* mskmodule.c */
 

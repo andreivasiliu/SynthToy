@@ -11,9 +11,10 @@
 #endif
 
 
-#define MSK_AUDIO_DATA      1
-#define MSK_FLOAT_PROPERTY  2
-#define MSK_INT_PROPERTY    3
+#define MSK_AUDIO_DATA      (1 << 0)
+#define MSK_CONTROL_DATA    (1 << 1)
+#define MSK_FLOAT_PROPERTY  (1 << 2)
+#define MSK_INT_PROPERTY    (1 << 3)
 
 typedef struct _MskWorld MskWorld;
 typedef struct _MskContainer MskContainer;
@@ -21,6 +22,7 @@ typedef struct _MskInstrument MskInstrument;
 typedef struct _MskPort MskPort;
 typedef struct _MskModule MskModule;
 typedef struct _MskProperty MskProperty;
+typedef struct _MskProcessor MskProcessor;
 
 typedef void (*MskProcessCallback)(MskModule *self, int start, int frames, void *state);
 typedef void (*MskActivateCallback)(MskModule *self, void *state);
@@ -63,8 +65,10 @@ struct _MskContainer
     /* If the container is also an instrument. */
     MskInstrument *instrument;
 
-    /* Runtime information. */
-    GList *process_order;
+    /* A list of 'tasks', of type MskProcessor. */
+    GList *processing_list;
+
+    /* This is needed by a container's children. */
     guint current_voice;
 };
 
@@ -178,7 +182,7 @@ MskModule MSK_API *msk_output_create_with_name(MskContainer *parent, gchar *name
 
 MskModule MSK_API *msk_input_create(MskContainer *parent);
 MskModule MSK_API *msk_output_create(MskContainer *parent);
-MskModule MSK_API *msk_voice_create(MskContainer *parent);
+MskModule MSK_API *msk_voicenumber_create(MskContainer *parent);
 MskModule MSK_API *msk_constant_create(MskContainer *parent);
 MskModule MSK_API *msk_autoconstant_create(MskContainer *parent);
 MskModule MSK_API *msk_oscillator_create(MskContainer *parent);

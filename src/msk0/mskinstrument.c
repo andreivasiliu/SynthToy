@@ -10,7 +10,7 @@ static int assign_free_voice(MskInstrument *instrument)
 {
     int voices = instrument->container->voices;
     int voice, i;
-    
+
     for ( i = 0; i < voices; i++ )
     {
         voice = (i + instrument->last_voice + 1) % voices;
@@ -21,9 +21,9 @@ static int assign_free_voice(MskInstrument *instrument)
             return voice;
         }
     }
-    
+
     // TODO: Find the oldest one.
-     
+
     /* This instrument has no voices at all. */
     return -1;
 }
@@ -34,21 +34,21 @@ static int assign_free_voice(MskInstrument *instrument)
 void msk_message_note_on(MskWorld *world, short note, short velocity)
 {
     GList *item;
-    
+
     if ( velocity == 0 )
         return msk_message_note_off(world, note, 0);
-    
+
     // TODO: We're setting all instruments here, but they should be
     // checked for things like channel, key range, etc.
     for ( item = world->instruments; item; item = item->next )
     {
         MskInstrument *instrument = item->data;
         int voice = assign_free_voice(instrument);
-        
+
         /* Instrument with 0 voices? */
         if ( voice < 0 )
             continue;
-        
+
         instrument->voice_note[voice] = note;
         instrument->voice_velocity[voice] = velocity;
     }
@@ -59,19 +59,19 @@ void msk_message_note_off(MskWorld *world, short note, short velocity)
 {
     GList *item;
     int voice;
-    
+
     // TODO: Same comment as on NoteOn. Channel, key range, etc.
     for ( item = world->instruments; item; item = item->next )
     {
         MskInstrument *instrument = item->data;
         int voices = instrument->container->voices;
-        
+
         /* Find the voice with that MIDI note, if any. */
         for ( voice = 0; voice < voices; voice++ )
         {
             // I don't like this instrument->field[voice]..
             // I think instrument[voice]->field might be faster.
-            
+
             if ( instrument->voice_active[voice] &&
                  instrument->voice_note[voice] == note )
             {
@@ -90,31 +90,30 @@ void msk_voiceactive_process(MskModule *self, int start, int frames, void *state
     MskContainer *parent = self->parent;
     int i;
     int voice, value;
-    
+
     // TODO: This is WAY TO VERBOSE.
     /* Find the instrument this module resides in. */
     while ( parent && (instrument = parent->instrument) == NULL )
     {
         parent = parent->module->parent;
     }
-    
+
     g_assert(instrument != NULL);
-    
+
     voice = instrument->container->current_voice;
     value = instrument->voice_active[voice];
-    
-    for ( i = start; i < start + frames; i++ )
-        out[i] = value;
+
+    *out = value;
 }
 
 MskModule *msk_voiceactive_create(MskContainer *parent)
 {
     MskModule *mod;
-    
+
     mod = msk_module_create(parent, "voiceactive", msk_voiceactive_process);
-    
-    msk_add_output_port(mod, "gate", MSK_AUDIO_DATA);
-    
+
+    msk_add_output_port(mod, "gate", MSK_CONTROL_DATA);
+
     return mod;
 }
 
@@ -125,31 +124,30 @@ void msk_voicepitch_process(MskModule *self, int start, int frames, void *state)
     MskContainer *parent = self->parent;
     int i;
     int voice, value;
-    
+
     // TODO: This is WAY TO VERBOSE.
     /* Find the instrument this module resides in. */
     while ( parent && (instrument = parent->instrument) == NULL )
     {
         parent = parent->module->parent;
     }
-    
+
     g_assert(instrument != NULL);
-    
+
     voice = instrument->container->current_voice;
     value = instrument->voice_note[voice];
-    
-    for ( i = start; i < start + frames; i++ )
-        out[i] = value;
+
+    *out = value;
 }
 
 MskModule *msk_voicepitch_create(MskContainer *parent)
 {
     MskModule *mod;
-    
+
     mod = msk_module_create(parent, "voicepitch", msk_voicepitch_process);
-    
-    msk_add_output_port(mod, "pitch", MSK_AUDIO_DATA);
-    
+
+    msk_add_output_port(mod, "pitch", MSK_CONTROL_DATA);
+
     return mod;
 }
 
@@ -160,32 +158,31 @@ void msk_voicevelocity_process(MskModule *self, int start, int frames, void *sta
     MskContainer *parent = self->parent;
     int i, voice;
     float value;
-    
+
     // TODO: This is WAY TO VERBOSE.
     /* Find the instrument this module resides in. */
     while ( parent && (instrument = parent->instrument) == NULL )
     {
         parent = parent->module->parent;
     }
-    
+
     g_assert(instrument != NULL);
-    
+
     voice = instrument->container->current_voice;
     value = (float)instrument->voice_velocity[voice] / 127;
-    
-    for ( i = start; i < start + frames; i++ )
-        out[i] = value;
+
+    *out = value;
 }
 
 MskModule *msk_voicevelocity_create(MskContainer *parent)
 {
     MskModule *mod;
-    
+
     mod = msk_module_create(parent, "voicevelocity",
                             msk_voicevelocity_process);
-    
-    msk_add_output_port(mod, "velocity", MSK_AUDIO_DATA);
-    
+
+    msk_add_output_port(mod, "velocity", MSK_CONTROL_DATA);
+
     return mod;
 }
 
@@ -194,7 +191,7 @@ typedef struct _MskADSRState
 {
     glong time_passed;
     gboolean gate_on;
-    
+
     float release_value;
 } MskADSRState;
 
@@ -202,7 +199,7 @@ typedef struct _MskADSRState
 void msk_adsr_activate(MskModule *self, void *state)
 {
     MskADSRState *adsr = state;
-    
+
     adsr->time_passed = *(float*)msk_module_get_property_buffer(self, "release") * 44100;
     adsr->gate_on = 0;
 }
@@ -217,7 +214,7 @@ void msk_adsr_process(MskModule *self, int start, int frames, void *state)
     float * const out = msk_module_get_output_buffer(self, "out");
     MskADSRState *adsr = state;
     int i;
-    
+
     for ( i = start; i < frames + start; i++ )
     {
         if ( gate[i] != adsr->gate_on )
@@ -225,7 +222,7 @@ void msk_adsr_process(MskModule *self, int start, int frames, void *state)
             adsr->time_passed = 0;
             adsr->gate_on = gate[i];
         }
-        
+
         if ( !gate[i] )
         {
             if ( adsr->time_passed < release )
@@ -259,19 +256,19 @@ void msk_adsr_process(MskModule *self, int start, int frames, void *state)
 MskModule *msk_adsr_create(MskContainer *parent)
 {
     MskModule *mod;
-    
+
     mod = msk_module_create(parent, "ADSR", msk_adsr_process);
-    
+
     msk_add_state(mod, msk_adsr_activate, NULL, sizeof(MskADSRState));
-    
+
     msk_add_input_port(mod, "gate", MSK_AUDIO_DATA, 0.0f);
     msk_add_output_port(mod, "out", MSK_AUDIO_DATA);
-    
+
     msk_add_float_property(mod, "attack", 0.03);
     msk_add_float_property(mod, "decay", 0.05);
     msk_add_float_property(mod, "sustain", 0.6);
     msk_add_float_property(mod, "release", 0.5);
-    
+
     return mod;
 }
 

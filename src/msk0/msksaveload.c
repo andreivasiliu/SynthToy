@@ -116,8 +116,6 @@ MskContainer *msk_load_world_from_file(const gchar *filename,
             break;
     }
 
-    g_print("Step 3!\n");
-
     for ( i = 0; i < modules_count && !abort; i++ )
     {
         char id[128];
@@ -248,7 +246,6 @@ MskContainer *msk_load_world_from_file(const gchar *filename,
         return NULL;
     }
 
-    g_print("Awesomeness!\n");
     return world;
 }
 

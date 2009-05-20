@@ -35,7 +35,7 @@ void whatiwant()
     
     buffer_out = msk_module_get_output_buffer(world->module, "audio1");
     
-    msk_world_prepare(instr);
+    msk_world_prepare(world);
     
     msk_message_note_on(world->module->world, 40, 127);
     msk_message_note_on(world->module->world, 60, 127);
@@ -44,11 +44,11 @@ void whatiwant()
     timer = g_timer_new();
     
     for ( i = 0; i < 20; i++ )
-        msk_world_run(instr);
+        msk_world_run(world);
     
     g_timer_start(timer);
     for ( i = 0; i < 1000; i++ )
-        msk_world_run(instr);
+        msk_world_run(world);
     g_timer_stop(timer);
     
     g_print("Time: %f.\n", g_timer_elapsed(timer, NULL));
