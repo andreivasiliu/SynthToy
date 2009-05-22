@@ -58,6 +58,8 @@ void msk_remove_input_port(MskModule *mod);
 MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type);
 MskProperty *msk_add_float_property(MskModule *mod, gchar *name, gfloat value);
 MskProperty *msk_add_integer_property(MskModule *mod, gchar *name, gint value);
+MskProperty *msk_add_string_property(MskModule *mod, gchar *name, gchar *value);
+void msk_property_add_write_callback(MskProperty *property, MskPropertyWriteCallback callback);
 
 void msk_container_activate(MskContainer *self);
 void msk_container_process(MskContainer *self, int start, int nframes, guint voice);

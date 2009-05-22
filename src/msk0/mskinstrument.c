@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <string.h>
 
 #include "msk0.h"
 #include "mskinternal.h"
@@ -82,23 +83,26 @@ void msk_message_note_off(MskWorld *world, short note, short velocity)
     }
 }
 
+static inline MskInstrument *get_instrument(MskContainer *parent)
+{
+    MskInstrument *instrument = NULL;
+
+    // TODO: This is WAY TO VERBOSE. Loops
+    /* Find the instrument this module resides in. */
+    while ( parent && (instrument = parent->instrument) == NULL )
+        parent = parent->module->parent;
+
+    g_assert(instrument != NULL);
+
+    return instrument;
+}
+
 
 void msk_voiceactive_process(MskModule *self, int start, int frames, void *state)
 {
     float * const out = msk_module_get_output_buffer(self, "gate");
-    MskInstrument *instrument = NULL;
-    MskContainer *parent = self->parent;
-    int i;
+    MskInstrument *instrument = get_instrument(self->parent);
     int voice, value;
-
-    // TODO: This is WAY TO VERBOSE.
-    /* Find the instrument this module resides in. */
-    while ( parent && (instrument = parent->instrument) == NULL )
-    {
-        parent = parent->module->parent;
-    }
-
-    g_assert(instrument != NULL);
 
     voice = instrument->container->current_voice;
     value = instrument->voice_active[voice];
@@ -111,7 +115,6 @@ MskModule *msk_voiceactive_create(MskContainer *parent)
     MskModule *mod;
 
     mod = msk_module_create(parent, "voiceactive", msk_voiceactive_process);
-
     msk_add_output_port(mod, "gate", MSK_CONTROL_DATA);
 
     return mod;
@@ -120,19 +123,8 @@ MskModule *msk_voiceactive_create(MskContainer *parent)
 void msk_voicepitch_process(MskModule *self, int start, int frames, void *state)
 {
     float * const out = msk_module_get_output_buffer(self, "pitch");
-    MskInstrument *instrument = NULL;
-    MskContainer *parent = self->parent;
-    int i;
+    MskInstrument *instrument = get_instrument(self->parent);
     int voice, value;
-
-    // TODO: This is WAY TO VERBOSE.
-    /* Find the instrument this module resides in. */
-    while ( parent && (instrument = parent->instrument) == NULL )
-    {
-        parent = parent->module->parent;
-    }
-
-    g_assert(instrument != NULL);
 
     voice = instrument->container->current_voice;
     value = instrument->voice_note[voice];
@@ -145,7 +137,6 @@ MskModule *msk_voicepitch_create(MskContainer *parent)
     MskModule *mod;
 
     mod = msk_module_create(parent, "voicepitch", msk_voicepitch_process);
-
     msk_add_output_port(mod, "pitch", MSK_CONTROL_DATA);
 
     return mod;
@@ -154,19 +145,9 @@ MskModule *msk_voicepitch_create(MskContainer *parent)
 void msk_voicevelocity_process(MskModule *self, int start, int frames, void *state)
 {
     float * const out = msk_module_get_output_buffer(self, "velocity");
-    MskInstrument *instrument = NULL;
-    MskContainer *parent = self->parent;
-    int i, voice;
+    MskInstrument *instrument = get_instrument(self->parent);
+    int voice;
     float value;
-
-    // TODO: This is WAY TO VERBOSE.
-    /* Find the instrument this module resides in. */
-    while ( parent && (instrument = parent->instrument) == NULL )
-    {
-        parent = parent->module->parent;
-    }
-
-    g_assert(instrument != NULL);
 
     voice = instrument->container->current_voice;
     value = (float)instrument->voice_velocity[voice] / 127;
@@ -183,6 +164,79 @@ MskModule *msk_voicevelocity_create(MskContainer *parent)
 
     msk_add_output_port(mod, "velocity", MSK_CONTROL_DATA);
 
+    return mod;
+}
+
+static void add_parameter_to_instrument(MskModule *module)
+{
+    MskInstrument *instrument = get_instrument(module->parent);
+
+    instrument->parameter_list = g_list_append(instrument->parameter_list, module);
+}
+
+void msk_parameter_process(MskModule *self, int start, int frames, void *state)
+{
+    float *out = msk_module_get_output_buffer(self, "value");
+    const float *value = msk_module_get_property_buffer(self, "value");
+
+    *out = *value;
+}
+
+void msk_parameter_name_changed(MskProperty *property, void *value)
+{
+    g_print("I've been written to!\n");
+    // TODO
+
+}
+
+static char *get_unique_parameter_name(MskContainer *parent)
+{
+    MskInstrument *instrument = get_instrument(parent);
+    char *unique_name;
+    GList *item;
+    int i;
+
+    for ( i = 1; ; i++ )
+    {
+        unique_name = g_strdup_printf("parameter #%d", i);
+
+        /* Check if it exists already. */
+        for ( item = instrument->parameter_list; item; item = item->next )
+        {
+            MskModule *mod = item->data;
+            const char *name;
+
+            name = msk_module_get_property_buffer(mod, "name");
+            if ( !strcmp(name, unique_name) )
+                break;
+        }
+
+        if ( !item )
+            return unique_name;
+
+        /* If one already exists, try again. */
+        g_free(unique_name);
+    }
+}
+
+MskModule *msk_parameter_create(MskContainer *parent)
+{
+    MskModule *mod;
+    MskProperty *property;
+    char *name = get_unique_parameter_name(parent);
+
+    mod = msk_module_create(parent, "parameter", msk_parameter_process);
+    msk_add_output_port(mod, "value", MSK_CONTROL_DATA);
+
+    msk_add_float_property(mod, "value", 0.0);
+    msk_add_float_property(mod, "min_value", 0.0);
+    msk_add_float_property(mod, "max_value", 1.0);
+    property = msk_add_string_property(mod, "name", name);
+    msk_property_add_write_callback(property, msk_parameter_name_changed);
+
+    add_parameter_to_instrument(mod);
+
+    g_free(name);
     return mod;
 }
 

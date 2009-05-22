@@ -16,9 +16,10 @@
  * This is just a quick-and-dirty implementation, to help with tests.
  */
 
+extern GtkListStore *liststore_properties;
 extern GMutex *lock_for_model;
-
 extern MskContainer *cont;
+
 MskContainer *current_container;
 
 cairo_surface_t *surface;
@@ -365,7 +366,7 @@ void paint_editor(GtkWidget *widget)
     GList *item;
     cairo_t *cr;
 
-    g_print("Paint requested.\n");
+    //g_print("Paint requested.\n");
 
     cr = gdk_cairo_create(widget->window);
 
@@ -573,11 +574,50 @@ G_MODULE_EXPORT gboolean
 }
 
 
+static void select_module(GraphicalModule *gmod)
+{
+    GList *item;
+
+    /* Select it, and bring it to the top. */
+    selected_module = gmod;
+    graphical_modules = g_list_remove(graphical_modules, gmod);
+    graphical_modules = g_list_append(graphical_modules, gmod);
+
+    /* Populate the Properties list with this module's properties. */
+    gtk_list_store_clear(liststore_properties);
+
+    for ( item = gmod->mod->properties; item; item = item->next )
+    {
+        MskProperty *property = item->data;
+        const void *value = property->value;
+        char *string_value;
+        GtkTreeIter iter;
+
+        if ( property->type == MSK_INT_PROPERTY )
+            string_value = g_strdup_printf("%d", *(int *) value);
+        else if ( property->type == MSK_FLOAT_PROPERTY )
+            string_value = g_strdup_printf("%f", *(float *) value);
+        else if ( property->type == MSK_STRING_PROPERTY )
+            string_value = g_strdup((char *) value);
+        else
+            g_error("Unkown property type.");
+
+        gtk_list_store_append(liststore_properties, &iter);
+        gtk_list_store_set(liststore_properties, &iter,
+                0, property->name, 1, string_value, -1);
+
+        g_free(string_value);
+    }
+}
+
+
 G_MODULE_EXPORT gboolean
     on_drawingarea2_button_press_event(GtkObject *object,
                                        GdkEventButton *event)
 {
     GraphicalModule *gmod;
+
+    gtk_widget_grab_focus(GTK_WIDGET(object));
 
     if ( event->button == 3 )
     {
@@ -613,10 +653,8 @@ G_MODULE_EXPORT gboolean
             return TRUE;
         }
 
-        /* Select the module and bring it to the top. */
-        selected_module = gmod;
-        graphical_modules = g_list_remove(graphical_modules, gmod);
-        graphical_modules = g_list_append(graphical_modules, gmod);
+        /* Bring it to the top and show its properties. */
+        select_module(gmod);
 
         // Print some info about it.
         g_print("Module: '%s', at x:%d, y:%d.\n", gmod->mod->name,

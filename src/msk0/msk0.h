@@ -11,10 +11,11 @@
 #endif
 
 
-#define MSK_AUDIO_DATA      (1 << 0)
-#define MSK_CONTROL_DATA    (1 << 1)
-#define MSK_FLOAT_PROPERTY  (1 << 2)
-#define MSK_INT_PROPERTY    (1 << 3)
+#define MSK_AUDIO_DATA          (1 << 0)
+#define MSK_CONTROL_DATA        (1 << 1)
+#define MSK_FLOAT_PROPERTY      (1 << 2)
+#define MSK_INT_PROPERTY        (1 << 3)
+#define MSK_STRING_PROPERTY     (1 << 4)
 
 typedef struct _MskWorld MskWorld;
 typedef struct _MskContainer MskContainer;
@@ -31,6 +32,8 @@ typedef void (*MskGlobalActivateCallback)(MskModule *self, void *state);
 typedef void (*MskGlobalDeactivateCallback)(MskModule *self, void *state);
 typedef void (*MskDynamicPortAddCallback)(MskModule *self);
 typedef void (*MskDynamicPortRemoveCallback)(MskModule *self);
+
+typedef void (*MskPropertyWriteCallback)(MskProperty *property, void *value);
 
 typedef void (*MskModuleLoadCallback)(GKeyFile *keyfile, MskModule *module, char *id);
 typedef void (*MskModuleSaveCallback)(GKeyFile *keyfile, MskModule *module, char *id);
@@ -155,9 +158,11 @@ struct _MskModule
 struct _MskProperty
 {
     gchar *name;
+    MskModule *owner;
+
     guint type;
     gpointer value;
-    MskModule *owner;
+    MskPropertyWriteCallback callback;
 };
 
 
@@ -166,6 +171,10 @@ void MSK_API msk_module_activate(MskModule *mod);
 void MSK_API msk_module_deactivate(MskModule *mod);
 
 void MSK_API msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value);
+
+MskProperty MSK_API *msk_module_get_property(MskModule *mod, gchar *prop_name);
+void MSK_API msk_property_set_value_from_string(MskProperty *property, gchar *value);
+gchar MSK_API *msk_property_get_value_as_string(MskProperty *property);
 
 gconstpointer MSK_API msk_module_get_property_buffer(MskModule *mod, gchar *name);
 gconstpointer MSK_API msk_module_get_input_buffer(MskModule *mod, gchar *name);
@@ -193,6 +202,7 @@ MskModule MSK_API *msk_mul_create(MskContainer *parent);
 MskModule MSK_API *msk_voiceactive_create(MskContainer *parent);
 MskModule MSK_API *msk_voicepitch_create(MskContainer *parent);
 MskModule MSK_API *msk_voicevelocity_create(MskContainer *parent);
+MskModule MSK_API *msk_parameter_create(MskContainer *parent);
 MskModule MSK_API *msk_adsr_create(MskContainer *parent);
 
 

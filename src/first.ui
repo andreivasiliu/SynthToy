@@ -2,6 +2,14 @@
 <interface>
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy toplevel-contextual -->
+  <object class="GtkListStore" id="liststore_properties">
+    <columns>
+      <!-- column-name Property -->
+      <column type="gchararray"/>
+      <!-- column-name Value -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="title" translatable="yes" comments="Main window title">SynthToy</property>
     <accel-groups>
@@ -27,6 +35,7 @@
                       <object class="GtkImageMenuItem" id="menuitem_open">
                         <property name="label">gtk-open</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="accel_group">accelgroup1</property>
                         <signal name="activate" handler="on_menuitem_open_activate"/>
@@ -36,6 +45,7 @@
                       <object class="GtkImageMenuItem" id="menuitem_save">
                         <property name="label">gtk-save</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="accel_group">accelgroup1</property>
                         <signal name="activate" handler="on_menuitem_save_activate"/>
@@ -50,6 +60,7 @@
                       <object class="GtkImageMenuItem" id="menuitem_quit">
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="accel_group">accelgroup1</property>
                         <signal name="activate" handler="on_menuitem_quit_activate"/>
@@ -71,6 +82,7 @@
                       <object class="GtkImageMenuItem" id="menuitem_properties">
                         <property name="label">gtk-properties</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="accel_group">accelgroup1</property>
                         <signal name="activate" handler="on_menuitem_properties_activate"/>
@@ -80,6 +92,7 @@
                       <object class="GtkImageMenuItem" id="imagemenuitem1">
                         <property name="label">gtk-preferences</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="accel_group">accelgroup1</property>
                       </object>
@@ -100,6 +113,7 @@
                       <object class="GtkImageMenuItem" id="imagemenuitem10">
                         <property name="label">gtk-about</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="accel_group">accelgroup1</property>
                       </object>
@@ -124,10 +138,11 @@
                 <property name="shadow_type">none</property>
                 <child>
                   <object class="GtkDrawingArea" id="drawingarea2">
-                    <property name="width_request">256</property>
+                    <property name="width_request">640</property>
                     <property name="height_request">256</property>
                     <property name="visible">True</property>
                     <property name="app_paintable">True</property>
+                    <property name="can_focus">True</property>
                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
                     <signal name="expose_event" handler="on_drawingarea2_expose_event"/>
                     <signal name="button_press_event" handler="on_drawingarea2_button_press_event"/>
@@ -152,9 +167,34 @@
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
-                  <object class="GtkTreeView" id="properties_treeview">
+                  <object class="GtkFrame" id="frame4">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="properties_treeview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="model">liststore_properties</property>
+                        <property name="headers_clickable">False</property>
+                        <property name="search_column">0</property>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn1">
+                            <property name="min_width">80</property>
+                            <property name="title"> Property</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn" id="treeviewcolumn2">
+                            <property name="min_width">50</property>
+                            <property name="title"> Value</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child type="label_item">
+                      <placeholder/>
+                    </child>
                   </object>
                 </child>
                 <child type="label">

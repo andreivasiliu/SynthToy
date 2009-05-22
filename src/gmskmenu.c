@@ -134,6 +134,18 @@ MskContainer *macro_simple_sine_generator(MskContainer *parent)
 }
 
 
+static void add_module_to_menu(GtkWidget *create_menu, char *name, void *function)
+{
+    GtkWidget *item;
+
+    item = gtk_menu_item_new_with_label(name);
+    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
+    gtk_signal_connect(GTK_OBJECT(item), "activate",
+                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
+                       function);
+}
+
+
 GtkWidget *gmsk_create_menu()
 {
     GtkWidget *menu, *create_menu;
@@ -152,77 +164,19 @@ GtkWidget *gmsk_create_menu()
     create_menu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), create_menu);
 
-    item = gtk_menu_item_new_with_label("Oscillator");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_oscillator_create);
-
-    item = gtk_menu_item_new_with_label("Pitch to Frequency");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_pitchtofrequency_create);
-
-    item = gtk_menu_item_new_with_label("Constant");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-
-    item = gtk_menu_item_new_with_label("AddMul");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-
-    item = gtk_menu_item_new_with_label("Add");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_add_create);
-
-    item = gtk_menu_item_new_with_label("Multiply");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_mul_create);
-
-    item = gtk_menu_item_new_with_label("Input");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_input_create);
-
-    item = gtk_menu_item_new_with_label("Output");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_output_create);
-
-    item = gtk_menu_item_new_with_label("Voice Number");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_voicenumber_create);
-
-    item = gtk_menu_item_new_with_label("Voice Active");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_voiceactive_create);
-
-    item = gtk_menu_item_new_with_label("Voice Pitch");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_voicepitch_create);
-
-    item = gtk_menu_item_new_with_label("Voice Velocity");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_voicevelocity_create);
-
-    item = gtk_menu_item_new_with_label("ADSR Envelope");
-    gtk_menu_shell_append(GTK_MENU_SHELL(create_menu), item);
-    gtk_signal_connect(GTK_OBJECT(item), "activate",
-                       GTK_SIGNAL_FUNC(on_mi_createmod_activate),
-                       &msk_adsr_create);
+    add_module_to_menu(create_menu, "Oscillator", &msk_oscillator_create);
+    add_module_to_menu(create_menu, "Pitch to Frequency", &msk_pitchtofrequency_create);
+    add_module_to_menu(create_menu, "Constant", &msk_constant_create);
+    add_module_to_menu(create_menu, "Add", &msk_add_create);
+    add_module_to_menu(create_menu, "Multiply", &msk_mul_create);
+    add_module_to_menu(create_menu, "Input", &msk_input_create);
+    add_module_to_menu(create_menu, "Output", &msk_output_create);
+    add_module_to_menu(create_menu, "Voice Number", &msk_voicenumber_create);
+    add_module_to_menu(create_menu, "Voice Active", &msk_voiceactive_create);
+    add_module_to_menu(create_menu, "Voice Pitch", &msk_voicepitch_create);
+    add_module_to_menu(create_menu, "Voice Velocity", &msk_voicevelocity_create);
+    add_module_to_menu(create_menu, "ADSR Envelope", &msk_adsr_create);
+    add_module_to_menu(create_menu, "Parameter", &msk_parameter_create);
 
 
     item = gtk_menu_item_new_with_label("Create macro");

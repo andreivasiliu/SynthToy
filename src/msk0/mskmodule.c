@@ -48,6 +48,9 @@ void msk_module_destroy(MskModule *mod)
     /* Free ports. */
     // TODO
 
+    /* Free properties. */
+    // TODO
+
     /* Free. */
     g_free(mod->name);
     g_free(mod);
@@ -488,37 +491,54 @@ MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type)
     return port;
 }
 
-MskProperty *msk_add_float_property(MskModule *mod, gchar *name, gfloat value)
+static MskProperty *add_property(MskModule *mod, gchar *name)
 {
     MskProperty *property;
 
     property = g_new0(MskProperty, 1);
     property->name = g_strdup(name);
-    property->type = MSK_FLOAT_PROPERTY;
     property->owner = mod;
-
-    property->value = g_new(gfloat, 1);
-    *(gfloat*)property->value = value;
 
     mod->properties = g_list_append(mod->properties, property);
 
     return property;
 }
 
+MskProperty *msk_add_float_property(MskModule *mod, gchar *name, gfloat value)
+{
+    MskProperty *property = add_property(mod, name);
+
+    property->type = MSK_FLOAT_PROPERTY;
+    property->value = g_new(gfloat, 1);
+    *(gfloat*)property->value = value;
+
+    return property;
+}
+
 MskProperty *msk_add_integer_property(MskModule *mod, gchar *name, gint value)
 {
-    MskProperty *property;
+    MskProperty *property = add_property(mod, name);
 
-    property = g_new0(MskProperty, 1);
-    property->name = g_strdup(name);
     property->type = MSK_INT_PROPERTY;
-
     property->value = g_new(gint, 1);
     *(gint*)property->value = value;
 
-    mod->properties = g_list_append(mod->properties, property);
+    return property;
+}
+
+MskProperty *msk_add_string_property(MskModule *mod, gchar *name, gchar *value)
+{
+    MskProperty *property = add_property(mod, name);
+
+    property->type = MSK_STRING_PROPERTY;
+    property->value = g_strdup(value);
 
     return property;
+}
+
+void msk_property_add_write_callback(MskProperty *property, MskPropertyWriteCallback callback)
+{
+    property->callback = callback;
 }
 
 gconstpointer msk_module_get_input_buffer(MskModule *mod, gchar *name)
@@ -587,6 +607,57 @@ void msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value)
         g_error("Property '%s' was not found.", name);
 
     // TODO: Check type.
+    if ( prop->callback )
+        prop->callback(prop, &value);
     *(float*)prop->value = value;
+}
+
+void msk_property_set_value_from_string(MskProperty *property, gchar *value)
+{
+    // TODO: scanf isn't good.
+
+    if ( property->type == MSK_INT_PROPERTY )
+    {
+        int newvalue;
+
+        sscanf(value, "%d", &newvalue);
+        if ( property->callback )
+            property->callback(property, &newvalue);
+        *(int*)property->value = newvalue;
+    }
+    else if ( property->type == MSK_FLOAT_PROPERTY )
+    {
+        float newvalue;
+
+        sscanf(value, "%f", &newvalue);
+        if ( property->callback )
+            property->callback(property, &newvalue);
+        *(float*)property->value = newvalue;
+    }
+    else if ( property->type == MSK_STRING_PROPERTY )
+    {
+        if ( property->value )
+            g_free(property->value);
+        property->value = g_strdup(value);
+        // TODO: callback.
+    }
+}
+
+gchar *msk_property_get_value_as_string(MskProperty *property)
+{
+    char *string_value;
+
+    g_assert(property != NULL);
+
+    if ( property->type == MSK_INT_PROPERTY )
+        string_value = g_strdup_printf("%d", *(int *) property->value);
+    else if ( property->type == MSK_FLOAT_PROPERTY )
+        string_value = g_strdup_printf("%f", *(float *) property->value);
+    else if ( property->type == MSK_STRING_PROPERTY )
+        string_value = g_strdup((char *) property->value);
+    else
+        g_error("Unkown property type.");
+
+    return string_value;
 }
 

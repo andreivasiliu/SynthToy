@@ -1,6 +1,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
+#include "msk0/msk0.h"
 #include "gmsk.h"
 
 
@@ -16,6 +17,10 @@ extern void virkb_mouseoff();
 extern void emulate_control_change(int channel, int control, int value);
 
 extern GtkWidget *main_window, *properties_frame;
+extern GtkListStore *liststore_properties;
+
+extern GraphicalModule *selected_module;
+extern GMutex *lock_for_model;
 
 static const guint compkey_notes[] =
 {
@@ -203,4 +208,28 @@ G_MODULE_EXPORT void on_menuitem_save_activate(GtkMenuItem *menuitem,
 
 
     // TODO: this is just for testing.
+}
+
+
+G_MODULE_EXPORT void on_propertycell_edited(GtkCellRendererText *renderer,
+                                            gchar               *path,
+                                            gchar               *new_text,
+                                            gpointer             user_data)
+{
+    GtkTreeIter iter;
+    char *property_name;
+    char *newer_text;
+    MskProperty *property;
+
+    gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(liststore_properties), &iter, path);
+    gtk_tree_model_get(GTK_TREE_MODEL(liststore_properties), &iter, 0, &property_name, -1);
+
+    g_mutex_lock(lock_for_model);
+    property = msk_module_get_property(selected_module->mod, property_name);
+    msk_property_set_value_from_string(property, new_text);
+    newer_text = msk_property_get_value_as_string(property);
+    g_mutex_unlock(lock_for_model);
+
+    gtk_list_store_set(liststore_properties, &iter, 1, newer_text, -1);
+    g_free(newer_text);
 }

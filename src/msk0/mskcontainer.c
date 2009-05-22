@@ -11,7 +11,15 @@
 
 void msk_container_activate(MskContainer *self)
 {
+    MskContainer *parent = self->module->parent;
     GList *item;
+
+    if ( parent )
+        self->voice_size = parent->voices * parent->voice_size;
+    else
+        self->voice_size = 1;
+
+    g_print("Voice size: %d.\n", self->voice_size);
 
     for ( item = self->module_list; item; item = item->next )
     {
@@ -68,7 +76,8 @@ void msk_container_process(MskContainer *self, int start, int nframes, guint voi
 
                 if ( mod->process )
                 {
-                    void *state = g_ptr_array_index(mod->state, voice * self->voice_size + v);
+                    //void *state = g_ptr_array_index(mod->state, voice * self->voice_size + v);
+                    void *state = g_ptr_array_index(mod->state, v * self->voice_size + voice);
                     mod->process(mod, start, nframes, state);
                 }
 
@@ -91,10 +100,25 @@ void msk_container_process(MskContainer *self, int start, int nframes, guint voi
 }
 
 
+static void msk_container_voices_changed(MskProperty *property, void *buffer)
+{
+    MskContainer *container = property->owner->container;
+    int *value = (int *)buffer;
+
+    if ( *value < 0 )
+        *value = 1;
+
+    // TODO: deactivate only if it was activated.
+    msk_container_deactivate(container);
+    container->voices = *value;
+    msk_container_activate(container);
+}
+
 MskContainer *msk_container_create(MskContainer *parent)
 {
     MskContainer *container;
     MskModule *module;
+    MskProperty *property;
 
     // Create the shell/wrapper/outside/whatever module.
     module = msk_module_create(parent, "container", NULL);
@@ -104,13 +128,9 @@ MskContainer *msk_container_create(MskContainer *parent)
     container->voices = 1;
     module->container = container;
 
-    if ( parent )
-        container->voice_size = parent->voices * parent->voice_size;
-    else
-        container->voice_size = 1;
-
     msk_add_integer_property(module, "type", MSK_SIMPLE_CONTAINER);
-    // needs at least one more property: voices
+    property = msk_add_integer_property(module, "voices", container->voices);
+    msk_property_add_write_callback(property, msk_container_voices_changed);
 
     return container;
 }
@@ -178,7 +198,10 @@ gboolean msk_container_sort(MskContainer *container)
 
     if ( container->processing_list )
     {
-        g_list_foreach(container->processing_list, g_free, NULL);
+        GList *item;
+
+        for ( item = container->processing_list; item; item = item->next )
+            g_free(item->data);
         g_list_free(container->processing_list);
     }
 
@@ -250,7 +273,6 @@ MskModule *msk_output_create(MskContainer *parent)
 void msk_voicenumber_process(MskModule *self, int start, int frames, void *state)
 {
     float * const out = msk_module_get_output_buffer(self, "nr");
-    int i;
     const int voice = self->parent->current_voice;
 
     *out = voice;
@@ -269,6 +291,27 @@ MskModule *msk_voicenumber_create(MskContainer *parent)
 }
 
 
+void msk_instrument_voices_changed(MskProperty *property, void *buffer)
+{
+    MskContainer *container = property->owner->container;
+    MskInstrument *instrument = container->instrument;
+    int *value = (int *)buffer;
+
+    if ( *value < 0 )
+        *value = 1;
+
+    // TODO: deactivate only if it was activated.
+    msk_container_deactivate(container);
+    container->voices = *value;
+    g_free(instrument->voice_active);
+    g_free(instrument->voice_note);
+    g_free(instrument->voice_velocity);
+    instrument->voice_active = g_new0(char, container->voices);
+    instrument->voice_note = g_new0(short, container->voices);
+    instrument->voice_velocity = g_new0(short, container->voices);
+    msk_container_activate(container);
+}
+
 // This is almost identical with msk_container_create... and that's a
 // very big problem.
 MskContainer *msk_instrument_create(MskContainer *parent)
@@ -277,6 +320,7 @@ MskContainer *msk_instrument_create(MskContainer *parent)
     MskContainer *container;
     MskInstrument *instrument;
     MskModule *module;
+    MskProperty *property;
 
     // Create the shell/wrapper/outside/whatever module.
     module = msk_module_create(parent, "instrument", NULL);
@@ -297,14 +341,9 @@ MskContainer *msk_instrument_create(MskContainer *parent)
     world = module->world;
     world->instruments = g_list_prepend(world->instruments, instrument);
 
-
-    if ( parent )
-        container->voice_size = parent->voices * parent->voice_size;
-    else
-        container->voice_size = 1;
-
     msk_add_integer_property(module, "type", MSK_INSTRUMENT_CONTAINER);
-    // needs at least one more property: voices
+    property = msk_add_integer_property(module, "voices", container->voices);
+    msk_property_add_write_callback(property, msk_instrument_voices_changed);
 
     return container;
 }
