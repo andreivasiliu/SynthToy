@@ -1,14 +1,13 @@
-#include <gtk/gtk.h>
+#include <glib.h>
 #include <cairo.h>
 #include <pango/pangocairo.h>
 
-#include "header.h"
 #include "msk0/msk0.h"
+#include "gmsk.h"
+#include "gmskinternal.h"
 
 
-extern MskContainer *current_container;
-
-void set_pango_font_description(PangoLayout *layout)
+static void set_pango_font_description(PangoLayout *layout)
 {
     PangoFontDescription *desc;
 
@@ -21,7 +20,7 @@ void set_pango_font_description(PangoLayout *layout)
     pango_font_description_free(desc);
 }
 
-void get_pango_text_size(char *string, int *width, int *height)
+static void get_pango_text_size(char *string, int *width, int *height)
 {
     PangoLayout *layout;
     cairo_surface_t *surface;
@@ -46,7 +45,7 @@ void get_pango_text_size(char *string, int *width, int *height)
 
 
 /* Create a layout to be painted later. */
-PangoLayout *create_pango_layout(cairo_t *cr, char *string,
+static PangoLayout *create_pango_layout(cairo_t *cr, char *string,
                           int *width, int *height)
 {
     PangoLayout *layout;
@@ -64,13 +63,13 @@ PangoLayout *create_pango_layout(cairo_t *cr, char *string,
 
 
 /* Paint and destroy a layout. */
-void paint_pango_layout(cairo_t *cr, PangoLayout *layout)
+static void paint_pango_layout(cairo_t *cr, PangoLayout *layout)
 {
     pango_cairo_show_layout(cr, layout);
     g_object_unref(layout);
 }
 
-void paint_pango_text(cairo_t *cr, char *string, int *width, int *height)
+static void paint_pango_text(cairo_t *cr, char *string, int *width, int *height)
 {
     PangoLayout *layout;
 
@@ -80,7 +79,7 @@ void paint_pango_text(cairo_t *cr, char *string, int *width, int *height)
 
 
 /* Paint a single container. */
-int gmsk_paint_navbar_item(cairo_t *cr, MskContainer *container)
+static int gmsk_paint_navbar_item(cairo_t *cr, MskContainer *container)
 {
     PangoLayout *layout;
     int width;

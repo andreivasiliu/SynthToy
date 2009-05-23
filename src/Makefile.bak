@@ -4,8 +4,8 @@ L_FLAGS = `pkg-config --libs gtk+-2.0 gthread-2.0` ${LFLAGS}
 BINEXT = .exe
 MODEXT = .dll
 
-OBJ1 = first.o events.o virkb.o process.o gmskeditor.o gmskmenu.o  \
-       gmsknavbar.o gmsksaveload.o msk0$(MODEXT) modwinmm$(MODEXT)
+OBJ1 = first.o events.o virkb.o process.o menu.o \
+       gmsk${MODEXT} msk0$(MODEXT) modwinmm$(MODEXT)
 
 
 
@@ -23,9 +23,13 @@ modwinmm$(MODEXT):
 msk0$(MODEXT):
 	@make -C msk0 -f Makefile.bak
 
+gmsk$(MODEXT):
+	@make -C gmsk -f Makefile.bak
+
 clean:
 	make -C mod-winmm -f Makefile.bak clean
 	make -C msk0 -f Makefile.bak clean
+	make -C gmsk -f Makefile.bak clean
 	rm -f *.o
 
-.PHONY: msk0$(MODEXT) modwinmm$(MODEXT)
+.PHONY: msk0$(MODEXT) gmsk$(MODEXT) modwinmm$(MODEXT)

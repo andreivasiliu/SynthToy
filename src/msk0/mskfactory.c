@@ -9,7 +9,7 @@ const struct
 {
     const char *name;
     MskModule *(*create_function)(MskContainer *parent);
-} create_functions[] =
+} create_module_functions[] =
 {
     { "oscillator", &msk_oscillator_create },
     { "input", &msk_input_create },
@@ -29,17 +29,40 @@ const struct
     { NULL, NULL }
 };
 
+const struct
+{
+    const char *name;
+    MskContainer *(*create_function)(MskContainer *parent);
+} create_container_functions[] =
+{
+    { "container", &msk_container_create },
+    { "instrument", &msk_instrument_create },
+    { NULL, NULL }
+};
+
 
 MskModule *msk_factory_create_module(const char *name, MskContainer *parent)
 {
     int i;
 
-    for ( i = 0; create_functions[i].name; i++ )
+    for ( i = 0; create_module_functions[i].name; i++ )
     {
-        if ( !strcmp(create_functions[i].name, name) )
-            return create_functions[i].create_function(parent);
+        if ( !strcmp(create_module_functions[i].name, name) )
+            return create_module_functions[i].create_function(parent);
     }
 
     return NULL;
 }
 
+MskContainer MSK_API *msk_factory_create_container(const char *name, MskContainer *parent)
+{
+    int i;
+
+    for ( i = 0; create_container_functions[i].name; i++ )
+    {
+        if ( !strcmp(create_container_functions[i].name, name) )
+            return create_container_functions[i].create_function(parent);
+    }
+
+    return NULL;
+}

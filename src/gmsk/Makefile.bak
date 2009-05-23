@@ -1,0 +1,22 @@
+C_FLAGS = -g -Wall `pkg-config --cflags glib-2.0 cairo pangocairo` \
+          -DLIBGMSK_EXPORTS -I.. ${CFLAGS}
+L_FLAGS = `pkg-config --libs glib-2.0 cairo pangocairo` -lm ${LFLAGS}
+
+MODEXT = .dll
+
+OBJECTS = gmskmain.o gmskeditor.o gmskselect.o gmsknavbar.o gmsksaveload.o \
+          gmskmacros.o ../msk0${MODEXT}
+
+BIN  = ../gmsk${MODEXT}
+
+
+all: ${BIN} ${TEST}
+
+${BIN}: ${OBJECTS}
+	gcc -shared -o $@ $^ ${L_FLAGS}
+
+gmsk%.o: gmsk%.c gmsk.h gmskinternal.h
+	gcc -c $< ${C_FLAGS}
+
+clean:
+	rm -f *.o

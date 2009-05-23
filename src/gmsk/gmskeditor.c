@@ -1,13 +1,13 @@
-#include <gtk/gtk.h>
+#include <glib.h>
 #include <cairo.h>
 #define PANGO_ENABLE_BACKEND 1
 #include <pango/pango.h>
 #include <pango/pangocairo.h>
 #undef PANGO_ENABLE_BACKEND
 
-#include "header.h"
 #include "msk0/msk0.h"
 #include "gmsk.h"
+#include "gmskinternal.h"
 
 
 /* WARNING: This code might be abusing a bug in Pango. */
@@ -15,12 +15,6 @@
 /* WARNING 2: The majority of this code will eventually be rewritten.
  * This is just a quick-and-dirty implementation, to help with tests.
  */
-
-extern GtkListStore *liststore_properties;
-extern GMutex *lock_for_model;
-extern MskContainer *cont;
-
-MskContainer *current_container;
 
 cairo_surface_t *surface;
 
@@ -361,14 +355,11 @@ void draw_connections(cairo_t *cr)
 }
 
 
-void paint_editor(GtkWidget *widget)
+void gmsk_paint_editor(cairo_t *cr)
 {
     GList *item;
-    cairo_t *cr;
 
     //g_print("Paint requested.\n");
-
-    cr = gdk_cairo_create(widget->window);
 
     cairo_set_source_rgb(cr, 0.2, 0.2, 0.3);
     cairo_paint(cr);
@@ -506,38 +497,42 @@ GMPort *get_gmport_at(GraphicalModule *gmod, int x, int y, int *type)
 
 void gmsk_connect_gmports(GMPort *output, GMPort *input)
 {
-    g_mutex_lock(lock_for_model);
+    gmsk_lock_mutex();
 
-    msk_container_deactivate(cont);
+    msk_container_deactivate(root_container);
     msk_connect_ports(output->owner->mod, output->port->name,
                       input->owner->mod, input->port->name);
-    msk_container_activate(cont);
+    msk_container_activate(root_container);
 
-    g_mutex_unlock(lock_for_model);
+    gmsk_unlock_mutex();
 }
 
-
-G_MODULE_EXPORT void
-    on_drawingarea2_expose_event(GtkObject *object,
-                                 GdkEventExpose *event)
+MskModule *msk_get_selected_module()
 {
-    paint_editor(GTK_WIDGET(object));
+    if (selected_module)
+        return selected_module->mod;
+
+    return NULL;
+}
+
+void gmsk_invalidate()
+{
+    if ( invalidate_callback )
+        invalidate_callback(invalidate_userdata);
 }
 
 
-G_MODULE_EXPORT gboolean
-    on_drawingarea2_motion_notify_event(GtkObject *object,
-                                        GdkEventMotion *event)
+gboolean gmsk_mouse_motion_event(int x, int y, int modifiers)
 {
     if ( dragged_module )
     {
         long new_x, new_y;
 
-        new_x = event->x - drag_grip_x;
-        new_y = event->y - drag_grip_y;
+        new_x = x - drag_grip_x;
+        new_y = y - drag_grip_y;
 
         /* Unless 'shift' is pressed, snap to a 5x5 grid. */
-        if ( !(event->state & GDK_SHIFT_MASK) )
+        if ( !(modifiers & GMSK_SHIFT_MASK) )
         {
             /* I wrote this due to lack of inspiration... How else do I round it? */
             new_x = ((new_x + 2) - (new_x + 2) % 5);
@@ -556,7 +551,7 @@ G_MODULE_EXPORT gboolean
             dragged_module->x = new_x;
             dragged_module->y = new_y;
 
-            gtk_widget_queue_draw(GTK_WIDGET(object));
+            gmsk_invalidate();
         }
 
         return TRUE;
@@ -564,87 +559,44 @@ G_MODULE_EXPORT gboolean
 
     if ( dragged_port )
     {
-        dragging_port_to_x = event->x;
-        dragging_port_to_y = event->y;
+        dragging_port_to_x = x;
+        dragging_port_to_y = y;
 
-        gtk_widget_queue_draw(GTK_WIDGET(object));
+        gmsk_invalidate();
     }
 
     return FALSE;
 }
 
 
-static void select_module(GraphicalModule *gmod)
+void gmsk_select_module(GraphicalModule *gmod)
 {
-    GList *item;
-
     /* Select it, and bring it to the top. */
     selected_module = gmod;
     graphical_modules = g_list_remove(graphical_modules, gmod);
     graphical_modules = g_list_append(graphical_modules, gmod);
 
-    /* Populate the Properties list with this module's properties. */
-    gtk_list_store_clear(liststore_properties);
-
-    for ( item = gmod->mod->properties; item; item = item->next )
-    {
-        MskProperty *property = item->data;
-        const void *value = property->value;
-        char *string_value;
-        GtkTreeIter iter;
-
-        if ( property->type == MSK_INT_PROPERTY )
-            string_value = g_strdup_printf("%d", *(int *) value);
-        else if ( property->type == MSK_FLOAT_PROPERTY )
-            string_value = g_strdup_printf("%f", *(float *) value);
-        else if ( property->type == MSK_STRING_PROPERTY )
-            string_value = g_strdup((char *) value);
-        else
-            g_error("Unkown property type.");
-
-        gtk_list_store_append(liststore_properties, &iter);
-        gtk_list_store_set(liststore_properties, &iter,
-                0, property->name, 1, string_value, -1);
-
-        g_free(string_value);
-    }
+    if ( select_module_callback )
+        select_module_callback(gmod->mod, select_module_userdata);
 }
 
-
-G_MODULE_EXPORT gboolean
-    on_drawingarea2_button_press_event(GtkObject *object,
-                                       GdkEventButton *event)
+gboolean gmsk_mouse_press_event(int x, int y, int button, int type, int modifiers)
 {
     GraphicalModule *gmod;
 
-    gtk_widget_grab_focus(GTK_WIDGET(object));
-
-    if ( event->button == 3 )
-    {
-        GtkWidget *menu;
-
-        menu = gmsk_create_menu();
-
-        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
-                       event->button, event->time);
-
-        return TRUE;
-    }
-
     /* Only left mouse button can drag. */
-    if ( event->button != 1 )
+    if ( button != 1 )
         return FALSE;
 
     /* The last one painted is the first one reachable. */
-    gmod = get_gmod_at(event->x, event->y);
+    gmod = get_gmod_at(x, y);
     if ( gmod )
     {
         GMPort *gmport;
         int gmport_type;
 
         /* Did we click on the module, or on a port of the module? */
-        gmport = get_gmport_at(gmod, event->x - gmod->x,
-                               event->y - gmod->y, &gmport_type);
+        gmport = get_gmport_at(gmod, x - gmod->x, y - gmod->y, &gmport_type);
         if ( gmport )
         {
             dragged_port = gmport;
@@ -654,14 +606,14 @@ G_MODULE_EXPORT gboolean
         }
 
         /* Bring it to the top and show its properties. */
-        select_module(gmod);
+        gmsk_select_module(gmod);
 
         // Print some info about it.
         g_print("Module: '%s', at x:%d, y:%d.\n", gmod->mod->name,
                 (int) gmod->x, (int) gmod->y);
 
         /* Double-click on a container? */
-        if ( event->type == GDK_2BUTTON_PRESS )
+        if ( type == GMSK_2BUTTON_PRESS )
         {
             if ( gmod->mod->container )
                 current_container = gmod->mod->container;
@@ -669,21 +621,21 @@ G_MODULE_EXPORT gboolean
         else
         {
             dragged_module = gmod;
-            drag_grip_x = event->x - gmod->x;
-            drag_grip_y = event->y - gmod->y;
+            drag_grip_x = x - gmod->x;
+            drag_grip_y = y - gmod->y;
         }
 
-        gtk_widget_queue_draw(GTK_WIDGET(object));
+        gmsk_invalidate();
 
         return TRUE;
     }
 
     /* Double-click on empty space? */
-    if ( event->type == GDK_2BUTTON_PRESS &&
+    if ( type == GMSK_2BUTTON_PRESS &&
          current_container->module->parent )
     {
         current_container = current_container->module->parent;
-        gtk_widget_queue_draw(GTK_WIDGET(object));
+        gmsk_invalidate();
 
         return TRUE;
     }
@@ -691,14 +643,12 @@ G_MODULE_EXPORT gboolean
     return FALSE;
 }
 
-G_MODULE_EXPORT void
-    on_drawingarea2_button_release_event(GtkObject *object,
-                                         GdkEventButton *event)
+gboolean gmsk_mouse_release_event(int x, int y, int button, int modifiers)
 {
     if ( dragged_module )
     {
         dragged_module = NULL;
-        gtk_widget_queue_draw(GTK_WIDGET(object));
+        gmsk_invalidate();
     }
 
     if ( dragged_port )
@@ -707,12 +657,11 @@ G_MODULE_EXPORT void
         GMPort *gmport;
         int type;
 
-        gmod = get_gmod_at(event->x, event->y);
+        gmod = get_gmod_at(x, y);
 
         if ( gmod )
         {
-            gmport = get_gmport_at(gmod, event->x - gmod->x,
-                                   event->y - gmod->y, &type);
+            gmport = get_gmport_at(gmod, x - gmod->x, y - gmod->y, &type);
 
             if ( gmport )
             {
@@ -729,7 +678,17 @@ G_MODULE_EXPORT void
         }
 
         dragged_port = NULL;
-        gtk_widget_queue_draw(GTK_WIDGET(object));
+        gmsk_invalidate();
     }
+
+    return FALSE;
+}
+
+MskModule *gmsk_get_selected_module()
+{
+    if ( selected_module )
+        return selected_module->mod;
+
+    return NULL;
 }
 

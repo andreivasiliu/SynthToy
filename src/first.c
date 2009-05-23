@@ -10,8 +10,6 @@
 # include "mod-winmm/modwinmm.h"
 #endif
 
-extern void paint_keyboard(GtkWidget *widget);
-
 GtkWidget *main_window;
 GtkWidget *left_osc, *editor, *virkb, *vscale_pw, *vscale_mw;
 GtkWidget *properties_frame;
@@ -22,11 +20,8 @@ void *jack_instance;
 #else
 void *winmm_instance;
 #endif
-float array[512];
-float array2[512];
 
 int screenupdates;
-extern gdouble processing_time;
 
 guint timeout;
 guint pt_timeout;
@@ -77,17 +72,6 @@ void paint_array_to_widget(GtkWidget *widget, float *array, int length)
     cairo_stroke(cr);
 
     cairo_destroy(cr);
-}
-
-
-G_MODULE_EXPORT void on_drawingarea1_expose_event(GtkObject *object, GdkEventExpose *event)
-{
-    paint_array_to_widget(GTK_WIDGET(object), array, 512);
-}
-
-G_MODULE_EXPORT void on_drawingarea3_expose_event(GtkObject *object, GdkEventExpose *event)
-{
-    paint_keyboard(GTK_WIDGET(object));
 }
 
 

@@ -214,6 +214,7 @@ void MSK_API msk_message_note_on(MskWorld *world, short note, short velocity);
 void MSK_API msk_message_note_off(MskWorld *world, short note, short velocity);
 
 MskModule MSK_API *msk_factory_create_module(const char *name, MskContainer *parent);
+MskContainer MSK_API *msk_factory_create_container(const char *name, MskContainer *parent);
 MskContainer MSK_API *msk_load_world_from_file(const gchar *filename,
         MskModuleLoadCallback moduleload_callback, GError **error);
 gboolean MSK_API msk_save_world_to_file(MskContainer *container, const gchar *filename,

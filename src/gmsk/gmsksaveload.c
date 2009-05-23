@@ -1,12 +1,9 @@
-#include <gtk/gtk.h>
-#include <string.h>
+#include <glib.h>
+#include <cairo.h>
 
 #include "msk0/msk0.h"
 #include "gmsk.h"
-
-extern GMutex *lock_for_model;
-extern MskContainer *cont, *current_container;
-extern GtkWidget *main_window;
+#include "gmskinternal.h"
 
 
 static void load_callback(GKeyFile *keyfile, MskModule *module, char *id)
@@ -34,13 +31,13 @@ gboolean gmsk_load_world_from_file(const gchar *filename, GError **error)
     if ( *error )
         return FALSE;
 
-    g_mutex_lock(lock_for_model);
+    gmsk_lock_mutex();
 
-    cont = world;
-    current_container = cont;
+    root_container = world;
+    current_container = root_container;
     msk_world_prepare(world);
 
-    g_mutex_unlock(lock_for_model);
+    gmsk_unlock_mutex();
 
     g_print("Awesomeness!\n");
     return TRUE;
@@ -65,7 +62,7 @@ static void save_callback(GKeyFile *keyfile, MskModule *module, char *id)
 
 gboolean gmsk_save_world_to_file(const gchar *filename, GError **error)
 {
-    msk_save_world_to_file(cont, filename, &save_callback, error);
+    msk_save_world_to_file(root_container, filename, &save_callback, error);
 
     if (*error)
         return FALSE;

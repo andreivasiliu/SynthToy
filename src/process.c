@@ -1,24 +1,26 @@
-#include <glib.h>
+#include <gtk/gtk.h>
 #include <glib/gprintf.h>
+#include <cairo.h>
 #include <string.h>
 
-#include "header.h"
 #include "msk0/msk0.h"
+#include "gmsk/gmsk.h"
+#include "header.h"
 
 
 /* Note: This file was created purely for testing. It will go away. */
 
-GMutex *lock_for_model;
+MskContainer *aural_root;
 
 extern void virkb_noteon(int note);
 extern void virkb_noteoff(int note);
 extern void draw_module(MskModule *mod, long x, long y);
 
-extern float array[512];
-extern float array2[512];
+extern void on_editor_invalidated(void *userdata);
+extern void on_module_selected(MskModule *module, void *userdata);
 
-MskContainer *cont;
-extern MskContainer *current_container;
+float array[512];
+float array2[512];
 
 gdouble processing_time;
 
@@ -32,16 +34,10 @@ int last_note = -1;
 
 GTimer *timer;
 
-void init_channel()
+void aural_init()
 {
     MskModule *output;
 
-    output = msk_output_create_with_name(cont, "audio1", MSK_AUDIO_DATA);
-    draw_module(output, 540, 90);
-}
-
-void aural_init()
-{
     int i;
 
     note_frequencies[69] = 440;
@@ -50,16 +46,18 @@ void aural_init()
     for ( i = 68; i >= 0; i-- )
         note_frequencies[i] = note_frequencies[i+1] / 1.0594630943f;
 
-    cont = msk_world_create(44100, 256);
+    aural_root = msk_world_create(44100, 256);
+    output = msk_output_create_with_name(aural_root, "audio1", MSK_AUDIO_DATA);
 
-    current_container = cont;
+    msk_world_prepare(aural_root);
 
-    init_channel();
+    gmsk_init(aural_root);
+    gmsk_set_invalidate_callback(&on_editor_invalidated, NULL);
+    gmsk_set_select_module_callback(&on_module_selected, NULL);
+
+    gmsk_draw_module_at(output, 540, 90);
 
     timer = g_timer_new();
-    lock_for_model = g_mutex_new();
-
-    msk_world_prepare(cont);
 }
 
 
@@ -69,17 +67,17 @@ void process_func(float *in, float *out, int nframes, int sample_rate, void *dat
     float *buffer;
     int i;
 
-    g_mutex_lock(lock_for_model);
+    gmsk_lock_mutex();
 
     for ( i = 0; i < nframes; i += 256 )
     {
         g_timer_start(timer);
-        msk_world_run(cont);
+        msk_world_run(aural_root);
         g_timer_stop(timer);
 
         processing_time += g_timer_elapsed(timer, NULL);
 
-        buffer = msk_module_get_output_buffer(cont->module, "audio1");
+        buffer = msk_module_get_output_buffer(aural_root->module, "audio1");
 
         memcpy(out + i, buffer, 256 * sizeof(float));
 
@@ -87,7 +85,7 @@ void process_func(float *in, float *out, int nframes, int sample_rate, void *dat
             memcpy(array + i, buffer, 256 * sizeof(float));
     }
 
-    g_mutex_unlock(lock_for_model);
+    gmsk_unlock_mutex();
 }
 
 void uint8_to_binary(int from, char *to)
@@ -114,6 +112,8 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
     if ( type != 1 )
         return;
 
+    // TODO: Isn't a gmsk_lock_mutex needed here?
+
     message = (unsigned char*) event_data;
 
     v = &voice;
@@ -125,7 +125,7 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
                 MIDI_CHANNEL(message[0]), message[1], message[2]);
 
         virkb_noteoff(message[1]);
-        msk_message_note_off(cont->module->world, message[1], message[2]);
+        msk_message_note_off(aural_root->module->world, message[1], message[2]);
 
         break;
     case 0x9:  /* 1001 */
@@ -137,7 +137,7 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
         else
             virkb_noteoff(message[1]);
 
-        msk_message_note_on(cont->module->world, message[1], message[2]);
+        msk_message_note_on(aural_root->module->world, message[1], message[2]);
 
         /*
         if ( message[2] == 0 && message[1] != last_note )

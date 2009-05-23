@@ -1,8 +1,10 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#include <cairo.h>
 
 #include "msk0/msk0.h"
-#include "gmsk.h"
+#include "gmsk/gmsk.h"
+#include "header.h"
 
 
 /* TODO:
@@ -16,11 +18,7 @@ extern void virkb_mouseon(gdouble x, gdouble y);
 extern void virkb_mouseoff();
 extern void emulate_control_change(int channel, int control, int value);
 
-extern GtkWidget *main_window, *properties_frame;
-extern GtkListStore *liststore_properties;
-
-extern GraphicalModule *selected_module;
-extern GMutex *lock_for_model;
+extern float array[512];
 
 static const guint compkey_notes[] =
 {
@@ -101,6 +99,63 @@ G_MODULE_EXPORT void on_vscale_mw_value_changed(GtkRange *range)
 G_MODULE_EXPORT void on_vscale_pw_value_changed(GtkObject *object)
 {
 
+}
+
+G_MODULE_EXPORT void on_drawingarea1_expose_event(GtkObject *object,
+        GdkEventExpose *event)
+{
+    paint_array_to_widget(GTK_WIDGET(object), array, 512);
+}
+
+G_MODULE_EXPORT void on_drawingarea2_expose_event(GtkObject *object,
+        GdkEventExpose *event)
+{
+    cairo_t *cr;
+
+    cr = gdk_cairo_create(GTK_WIDGET(object)->window);
+
+    gmsk_paint_editor(cr);
+}
+
+G_MODULE_EXPORT void on_drawingarea3_expose_event(GtkObject *object,
+        GdkEventExpose *event)
+{
+    paint_keyboard(GTK_WIDGET(object));
+}
+
+G_MODULE_EXPORT gboolean
+    on_drawingarea2_motion_notify_event(GtkObject *object,
+                                        GdkEventMotion *event)
+{
+    return gmsk_mouse_motion_event(event->x, event->y, event->state);
+}
+
+G_MODULE_EXPORT gboolean
+    on_drawingarea2_button_press_event(GtkObject *object,
+                                       GdkEventButton *event)
+{
+    gtk_widget_grab_focus(GTK_WIDGET(object));
+
+    if ( event->button == 3 )
+    {
+        GtkWidget *menu;
+
+        menu = create_menu();
+
+        gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL,
+                       event->button, event->time);
+
+        return TRUE;
+    }
+
+    return gmsk_mouse_press_event(event->x, event->y, event->button, event->type, event->state);
+}
+
+G_MODULE_EXPORT gboolean
+    on_drawingarea2_button_release_event(GtkObject *object,
+                                         GdkEventButton *event)
+{
+    return gmsk_mouse_release_event(event->x, event->y, event->button, event->state);
 }
 
 G_MODULE_EXPORT void on_menuitem_properties_activate(GtkMenuItem *menuitem,
@@ -219,17 +274,63 @@ G_MODULE_EXPORT void on_propertycell_edited(GtkCellRendererText *renderer,
     GtkTreeIter iter;
     char *property_name;
     char *newer_text;
+    MskModule *module;
     MskProperty *property;
+
+    module = gmsk_get_selected_module();
+    if ( !module )
+        return;
 
     gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(liststore_properties), &iter, path);
     gtk_tree_model_get(GTK_TREE_MODEL(liststore_properties), &iter, 0, &property_name, -1);
 
-    g_mutex_lock(lock_for_model);
-    property = msk_module_get_property(selected_module->mod, property_name);
+    gmsk_lock_mutex();
+    property = msk_module_get_property(module, property_name);
     msk_property_set_value_from_string(property, new_text);
     newer_text = msk_property_get_value_as_string(property);
-    g_mutex_unlock(lock_for_model);
+    gmsk_unlock_mutex();
 
     gtk_list_store_set(liststore_properties, &iter, 1, newer_text, -1);
     g_free(newer_text);
 }
+
+void on_module_selected(MskModule *module, void *userdata)
+{
+    GList *item;
+
+    gtk_list_store_clear(liststore_properties);
+
+    if ( !module )
+        return;
+
+    /* Populate the Properties list with this module's properties. */
+    for ( item = module->properties; item; item = item->next )
+    {
+        MskProperty *property = item->data;
+        const void *value = property->value;
+        char *string_value;
+        GtkTreeIter iter;
+
+        if ( property->type == MSK_INT_PROPERTY )
+            string_value = g_strdup_printf("%d", *(int *) value);
+        else if ( property->type == MSK_FLOAT_PROPERTY )
+            string_value = g_strdup_printf("%f", *(float *) value);
+        else if ( property->type == MSK_STRING_PROPERTY )
+            string_value = g_strdup((char *) value);
+        else
+            g_error("Unkown property type.");
+
+        gtk_list_store_append(liststore_properties, &iter);
+        gtk_list_store_set(liststore_properties, &iter,
+                0, property->name, 1, string_value, -1);
+
+        g_free(string_value);
+    }
+}
+
+void on_editor_invalidated(void *userdata)
+{
+    gtk_widget_queue_draw(GTK_WIDGET(editor));
+}
+
+

@@ -2,10 +2,8 @@
 # include "config.h"
 #endif
 
-/* These includes would ideally go away. */
-#include <gtk/gtk.h>
-#include <cairo.h>
 
+// TODO: Old.. sort this out.
 extern void refresh_osc_window();
 
 extern int get_my_size();
@@ -22,8 +20,21 @@ extern void aural_init();
 extern void process_func(float *in, float *out, int nframes, int sample_rate, void *data);
 extern void event_func(int nframes, int type, void *event_data, int event_size, void *data);
 
-/* gmskmenu.c */
-extern GtkWidget *gmsk_create_menu();
+/* first.c */
+void paint_array_to_widget(GtkWidget *widget, float *array, int length);
+extern GtkWidget *main_window;
+extern GtkWidget *left_osc, *editor, *virkb, *vscale_pw, *vscale_mw;
+extern GtkWidget *properties_frame;
+extern GtkListStore *liststore_properties;
 
-/* gmsknavbar.c */
-extern void gmsk_paint_navbar(cairo_t *cr);
+/* menu.c */
+extern GtkWidget *create_menu();
+
+/* process.c */
+extern float array[512];
+extern float array2[512];
+extern gdouble processing_time;
+
+/* virkb.c */
+extern void paint_keyboard(GtkWidget *widget);
+
