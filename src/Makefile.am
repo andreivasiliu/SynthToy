@@ -2,14 +2,13 @@ bin_PROGRAMS = synthtoy
 pkgdata_DATA = first.ui
 EXTRA_DIST = first.ui
 
-synthtoy_SOURCES = first.c events.c process.c virkb.c gmskeditor.c \
-		   gmskmenu.c gmsknavbar.c gmsksaveload.c header.h
-synthtoy_LDADD = msk0/libmsk0.la $(GTK_LIBS) $(GTHREAD_LIBS)
+synthtoy_SOURCES = first.c events.c process.c virkb.c menu.c header.h
+synthtoy_LDADD = msk0/libmsk0.la gmsk/libgmsk.la $(GTK_LIBS) $(GTHREAD_LIBS)
 synthtoy_LDFLAGS = -static -rdynamic
 synthtoy_CFLAGS = $(GTK_CFLAGS) $(GTHREAD_CFLAGS)
 
 
-SUBDIRS = msk0
+SUBDIRS = msk0 gmsk
 
 if HAVE_WINMM
   SUBDIRS += mod-winmm

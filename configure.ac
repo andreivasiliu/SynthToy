@@ -31,6 +31,7 @@ PKG_CHECK_MODULES(GLIB, [glib-2.0])
 PKG_CHECK_MODULES(GMODULE, [gmodule-2.0])
 PKG_CHECK_MODULES(GTK, [gtk+-2.0])
 PKG_CHECK_MODULES(GTHREAD, [gthread-2.0])
+PKG_CHECK_MODULES(PANGOCAIRO, [pangocairo])
 
 # Checks for optional pakages. The macro is defined in acinclude.m4.
 MSK_CHECK_OPTIONAL_MODULE([portaudio], [PortAudio], [PORTAUDIO],
@@ -57,6 +58,7 @@ AC_CHECK_FUNCS([memset])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/msk0/Makefile
+                 src/gmsk/Makefile
                  src/mod-winmm/Makefile
                  src/mod-jack/Makefile
                  src/mod-portaudio/Makefile])
