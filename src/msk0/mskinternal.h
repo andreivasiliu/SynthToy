@@ -50,10 +50,10 @@ extern MskModule *msk_module_create(MskContainer *parent, gchar *name,
 void msk_add_state(MskModule *module, MskActivateCallback activate,
                    MskDeactivateCallback deactivate, gsize state_size);
 
-void msk_add_global_state(MskModule *module,
-                          MskGlobalActivateCallback global_activate,
-                          MskGlobalActivateCallback global_deactivate,
-                          gsize state_size);
+void *msk_add_global_state(MskModule *module, gsize state_size);
+
+void msk_add_destroy_callback(MskModule *module, MskModuleDestroyCallback callback);
+
 
 void msk_dynamic_ports(MskModule *module,
                        MskDynamicPortAddCallback dynamic_port_add,
@@ -67,7 +67,8 @@ MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type);
 MskProperty *msk_add_float_property(MskModule *mod, gchar *name, gfloat value);
 MskProperty *msk_add_integer_property(MskModule *mod, gchar *name, gint value);
 MskProperty *msk_add_string_property(MskModule *mod, gchar *name, gchar *value);
-void msk_property_add_write_callback(MskProperty *property, MskPropertyWriteCallback callback);
+void msk_property_set_write_callback(MskProperty *property, MskPropertyWriteCallback callback);
+void msk_property_set_flags(MskProperty *property, guint flags);
 
 void msk_container_activate(MskContainer *self);
 void msk_container_process(MskContainer *self, int start, int nframes, guint voice);

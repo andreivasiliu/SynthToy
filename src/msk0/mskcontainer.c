@@ -150,7 +150,7 @@ MskContainer *msk_container_create(MskContainer *parent)
 
     msk_add_integer_property(module, "type", MSK_SIMPLE_CONTAINER);
     property = msk_add_integer_property(module, "voices", container->voices);
-    msk_property_add_write_callback(property, msk_container_voices_changed);
+    msk_property_set_write_callback(property, msk_container_voices_changed);
 
     return container;
 }
@@ -160,6 +160,8 @@ static void add_module_as_task(MskModule *mod, GList **process_order)
 {
     GList *lport;
     MskProcessor *task;
+
+    mod->prepared = TRUE;
 
     for ( lport = mod->in_ports; lport; lport = lport->next )
     {
@@ -203,7 +205,6 @@ static void add_module_as_task(MskModule *mod, GList **process_order)
     // TODO: g_list_append takes time... it's better to prepend on linked
     // lists, and then reverse the order.
     *process_order = g_list_append(*process_order, task);
-    mod->prepared = TRUE;
 }
 
 /* Attempt to do a topological sort of its modules, and construct a list of
@@ -371,7 +372,7 @@ MskContainer *msk_instrument_create(MskContainer *parent)
 
     msk_add_integer_property(module, "type", MSK_INSTRUMENT_CONTAINER);
     property = msk_add_integer_property(module, "voices", container->voices);
-    msk_property_add_write_callback(property, msk_instrument_voices_changed);
+    msk_property_set_write_callback(property, msk_instrument_voices_changed);
 
     return container;
 }

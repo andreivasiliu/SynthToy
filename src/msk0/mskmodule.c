@@ -37,6 +37,9 @@ void msk_module_destroy(MskModule *mod)
 {
     GList *item;
 
+    if ( mod->destroy_callback )
+        mod->destroy_callback(mod);
+
     /* Unlink all ports. */
     for ( item = mod->in_ports; item; item = item->next )
     {
@@ -62,6 +65,9 @@ void msk_module_destroy(MskModule *mod)
     /* Clear its state, if any. */
     if ( mod->state )
         msk_module_deactivate(mod);
+
+    if ( mod->global_state )
+        g_free(mod->global_state);
 
     /* Free ports. */
     // TODO
@@ -122,6 +128,16 @@ void msk_module_deactivate(MskModule *mod)
 }
 
 
+void msk_module_reactivate(MskModule *mod)
+{
+    if ( mod->state )
+    {
+        msk_module_deactivate(mod);
+        msk_module_activate(mod);
+    }
+}
+
+
 void msk_add_state(MskModule *module,
                    MskActivateCallback activate,
                    MskDeactivateCallback deactivate,
@@ -130,6 +146,20 @@ void msk_add_state(MskModule *module,
     module->activate = activate;
     module->deactivate = deactivate;
     module->state_size = state_size;
+}
+
+
+void *msk_add_global_state(MskModule *module, gsize state_size)
+{
+    module->global_state = (void*) g_new0(char, state_size);
+
+    return module->global_state;
+}
+
+
+void msk_add_destroy_callback(MskModule *module, MskModuleDestroyCallback callback)
+{
+    module->destroy_callback = callback;
 }
 
 
@@ -562,9 +592,14 @@ MskProperty *msk_add_string_property(MskModule *mod, gchar *name, gchar *value)
     return property;
 }
 
-void msk_property_add_write_callback(MskProperty *property, MskPropertyWriteCallback callback)
+void msk_property_set_write_callback(MskProperty *property, MskPropertyWriteCallback callback)
 {
     property->callback = callback;
+}
+
+void msk_property_set_flags(MskProperty *property, guint flags)
+{
+    property->flags = flags;
 }
 
 gconstpointer msk_module_get_input_buffer(MskModule *mod, gchar *name)
@@ -625,21 +660,144 @@ gconstpointer msk_module_get_property_buffer(MskModule *mod, gchar *name)
 }
 
 
-void msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value)
+void msk_module_set_integer_property(MskModule *mod, gchar *name, gint value)
+{
+    MskProperty *prop = msk_module_get_property(mod, name);
+    gboolean reactivate = FALSE;
+
+    if ( !prop )
+        g_error("Property '%s' was not found.", name);
+
+    if ( prop->type != MSK_INT_PROPERTY )
+        g_error("Called 'msk_module_set_integer_property' on a property that "
+                "is not an integer value.");
+
+    if ( prop->flags & MSK_PROPERTY_DEACTIVATES_MODULE && mod->state )
+    {
+        msk_module_deactivate(mod);
+        reactivate = TRUE;
+    }
+
+    if ( prop->callback )
+        prop->callback(prop, &value);
+    *(int*)prop->value = value;
+
+    if ( reactivate )
+        msk_module_activate(mod);
+}
+
+
+int msk_module_get_integer_property(MskModule *mod, gchar *name)
 {
     MskProperty *prop = msk_module_get_property(mod, name);
 
     if ( !prop )
         g_error("Property '%s' was not found.", name);
 
-    // TODO: Check type.
+    if ( prop->type != MSK_INT_PROPERTY )
+        g_error("Called 'msk_module_get_integer_property' on a property that "
+                "is not an integer value.");
+
+    return *(int*)prop->value;
+}
+
+
+void msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value)
+{
+    MskProperty *prop = msk_module_get_property(mod, name);
+    gboolean reactivate = FALSE;
+
+    if ( !prop )
+        g_error("Property '%s' was not found.", name);
+
+    if ( prop->type != MSK_FLOAT_PROPERTY )
+        g_error("Called 'msk_module_set_float_property' on a property that "
+                "is not a float value.");
+
+    if ( prop->flags & MSK_PROPERTY_DEACTIVATES_MODULE && mod->state )
+    {
+        msk_module_deactivate(mod);
+        reactivate = TRUE;
+    }
+
     if ( prop->callback )
         prop->callback(prop, &value);
     *(float*)prop->value = value;
+
+    if ( reactivate )
+        msk_module_activate(mod);
 }
+
+
+float msk_module_get_float_property(MskModule *mod, gchar *name)
+{
+    MskProperty *prop = msk_module_get_property(mod, name);
+
+    if ( !prop )
+        g_error("Property '%s' was not found.", name);
+
+    if ( prop->type != MSK_FLOAT_PROPERTY )
+        g_error("Called 'msk_module_get_float_property' on a property that "
+                "is not a float value.");
+
+    return *(float*)prop->value;
+}
+
+
+void msk_module_set_string_property(MskModule *mod, gchar *name, gchar *value)
+{
+    MskProperty *prop = msk_module_get_property(mod, name);
+    gchar *newvalue;
+    gboolean reactivate = FALSE;
+
+    if ( !prop )
+        g_error("Property '%s' was not found.", name);
+
+    if ( prop->type != MSK_STRING_PROPERTY )
+        g_error("Called 'msk_module_set_string_property' on a property that "
+                "is not a string.");
+
+    if ( prop->flags & MSK_PROPERTY_DEACTIVATES_MODULE && mod->state )
+    {
+        msk_module_deactivate(mod);
+        reactivate = TRUE;
+    }
+
+    newvalue = g_strdup(value);
+    if ( prop->callback )
+        prop->callback(prop, &newvalue);
+    prop->value = newvalue;
+
+    if ( reactivate )
+        msk_module_activate(mod);
+}
+
+
+gchar *msk_module_get_string_property(MskModule *mod, gchar *name)
+{
+    MskProperty *prop = msk_module_get_property(mod, name);
+
+    if ( !prop )
+        g_error("Property '%s' was not found.", name);
+
+    if ( prop->type != MSK_STRING_PROPERTY )
+        g_error("Called 'msk_module_get_string_property' on a property that "
+                "is not a string.");
+
+    return (gchar*) prop->value;
+}
+
 
 void msk_property_set_value_from_string(MskProperty *property, gchar *value)
 {
+    gboolean reactivate = FALSE;
+
+    if ( property->flags & MSK_PROPERTY_DEACTIVATES_MODULE && property->owner->state )
+    {
+        msk_module_deactivate(property->owner);
+        reactivate = TRUE;
+    }
+
     // TODO: scanf isn't good.
 
     if ( property->type == MSK_INT_PROPERTY )
@@ -662,11 +820,19 @@ void msk_property_set_value_from_string(MskProperty *property, gchar *value)
     }
     else if ( property->type == MSK_STRING_PROPERTY )
     {
+        char *newvalue;
+
         if ( property->value )
             g_free(property->value);
-        property->value = g_strdup(value);
-        // TODO: callback.
+
+        newvalue = g_strdup(value);
+        if ( property->callback )
+            property->callback(property, &newvalue);
+        property->value = newvalue;
     }
+
+    if ( reactivate )
+        msk_module_activate(property->owner);
 }
 
 gchar *msk_property_get_value_as_string(MskProperty *property)

@@ -25,6 +25,7 @@ const struct
     { "voicevelocity", &msk_voicevelocity_create },
     { "parameter", &msk_parameter_create },
     { "ADSR", &msk_adsr_create },
+    { "delay", &msk_delay_create },
     { NULL, NULL }
 };
 

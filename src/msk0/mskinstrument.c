@@ -232,7 +232,7 @@ MskModule *msk_parameter_create(MskContainer *parent)
     msk_add_float_property(mod, "min_value", 0.0);
     msk_add_float_property(mod, "max_value", 1.0);
     property = msk_add_string_property(mod, "name", name);
-    msk_property_add_write_callback(property, msk_parameter_name_changed);
+    msk_property_set_write_callback(property, msk_parameter_name_changed);
 
     add_parameter_to_instrument(mod);
 

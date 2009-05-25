@@ -11,11 +11,15 @@
 #endif
 
 
+/* Port and property types. */
 #define MSK_AUDIO_DATA          (1 << 0)
 #define MSK_CONTROL_DATA        (1 << 1)
 #define MSK_FLOAT_PROPERTY      (1 << 2)
 #define MSK_INT_PROPERTY        (1 << 3)
 #define MSK_STRING_PROPERTY     (1 << 4)
+
+/* Property flags. */
+#define MSK_PROPERTY_DEACTIVATES_MODULE  (1 << 0)
 
 typedef struct _MskWorld MskWorld;
 typedef struct _MskContainer MskContainer;
@@ -28,10 +32,9 @@ typedef struct _MskProcessor MskProcessor;
 typedef void (*MskProcessCallback)(MskModule *self, int start, int frames, void *state);
 typedef void (*MskActivateCallback)(MskModule *self, void *state);
 typedef void (*MskDeactivateCallback)(MskModule *self, void *state);
-typedef void (*MskGlobalActivateCallback)(MskModule *self, void *state);
-typedef void (*MskGlobalDeactivateCallback)(MskModule *self, void *state);
 typedef void (*MskDynamicPortAddCallback)(MskModule *self);
 typedef void (*MskDynamicPortRemoveCallback)(MskModule *self);
+typedef void (*MskModuleDestroyCallback)(MskModule *self);
 
 typedef void (*MskPropertyWriteCallback)(MskProperty *property, void *value);
 
@@ -131,11 +134,10 @@ struct _MskModule
     MskActivateCallback activate;
     MskDeactivateCallback deactivate;
 
-    MskGlobalActivateCallback global_activate;
-    MskGlobalDeactivateCallback global_deactivate;
-
     MskDynamicPortAddCallback dynamic_port_add;
     MskDynamicPortRemoveCallback dynamic_port_remove;
+
+    MskModuleDestroyCallback destroy_callback;
 
     GList *in_ports;
     GList *out_ports;
@@ -143,7 +145,7 @@ struct _MskModule
 
     GPtrArray *state;
     gsize state_size;
-
+    void *global_state;
     gboolean prepared;
 
     // TODO: this workaround must go away.
@@ -159,6 +161,7 @@ struct _MskProperty
     MskModule *owner;
 
     guint type;
+    guint flags;
     gpointer value;
     MskPropertyWriteCallback callback;
 };
@@ -167,9 +170,16 @@ struct _MskProperty
 /*** Functions ***/
 void MSK_API msk_module_activate(MskModule *mod);
 void MSK_API msk_module_deactivate(MskModule *mod);
+void MSK_API msk_module_reactivate(MskModule *mod);
 void MSK_API msk_module_destroy(MskModule *mod);
 
-void MSK_API msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value);
+/* Properties. */
+void  MSK_API  msk_module_set_integer_property(MskModule *mod, gchar *name, gint value);
+int   MSK_API  msk_module_get_integer_property(MskModule *mod, gchar *name);
+void  MSK_API  msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value);
+float MSK_API  msk_module_get_float_property(MskModule *mod, gchar *name);
+void  MSK_API  msk_module_set_string_property(MskModule *mod, gchar *name, gchar *value);
+gchar MSK_API *msk_module_get_string_property(MskModule *mod, gchar *name);
 
 MskProperty MSK_API *msk_module_get_property(MskModule *mod, gchar *prop_name);
 void MSK_API msk_property_set_value_from_string(MskProperty *property, gchar *value);
@@ -179,11 +189,14 @@ gconstpointer MSK_API msk_module_get_property_buffer(MskModule *mod, gchar *name
 gconstpointer MSK_API msk_module_get_input_buffer(MskModule *mod, gchar *name);
 gpointer      MSK_API msk_module_get_output_buffer(MskModule *mod, gchar *name);
 
+
+/* Ports. */
 void MSK_API msk_connect_ports(MskModule *left, gchar *left_port_name,
                        MskModule *right, gchar *right_port_name);
 void MSK_API msk_disconnect_input_port(MskPort *in_port);
 void MSK_API msk_disconnect_output_port(MskPort *out_port);
 
+/* Module constructors. */
 MskContainer MSK_API *msk_container_create(MskContainer *parent);
 MskContainer MSK_API *msk_instrument_create(MskContainer *parent);
 
@@ -204,8 +217,9 @@ MskModule MSK_API *msk_voicepitch_create(MskContainer *parent);
 MskModule MSK_API *msk_voicevelocity_create(MskContainer *parent);
 MskModule MSK_API *msk_parameter_create(MskContainer *parent);
 MskModule MSK_API *msk_adsr_create(MskContainer *parent);
+MskModule MSK_API *msk_delay_create(MskContainer *parent);
 
-
+/* MSK World. */
 MskContainer MSK_API *msk_world_create(gulong sample_rate, gsize block_size);
 void MSK_API msk_world_destroy(MskContainer *world);
 void MSK_API msk_world_prepare(MskContainer *container);
@@ -221,7 +235,5 @@ gboolean MSK_API msk_save_world_to_file(MskContainer *container, const gchar *fi
         MskModuleSaveCallback modulesave_callback, GError **error);
 
 // TODO: delete
-void MSK_API msk_create_buffers_on_module(MskModule *module);
-void MSK_API msk_destroy_buffers_on_module(MskModule *module);
 void MSK_API msk_container_activate(MskContainer *self);
 void MSK_API msk_container_deactivate(MskContainer *self);
