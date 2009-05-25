@@ -44,6 +44,9 @@ gboolean GMSK_API gmsk_mouse_motion_event(int x, int y, int modifiers);
 gboolean GMSK_API gmsk_mouse_press_event(int x, int y, int button, int type, int modifiers);
 gboolean GMSK_API gmsk_mouse_release_event(int x, int y, int button, int modifiers);
 MskModule GMSK_API *gmsk_get_selected_module();
+MskPort GMSK_API *msk_get_selected_connection();
+void GMSK_API gmsk_delete_selected();
+
 
 
 /* gmskmacros.c */

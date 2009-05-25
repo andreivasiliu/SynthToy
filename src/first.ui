@@ -146,8 +146,10 @@
                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
                     <signal name="expose_event" handler="on_drawingarea2_expose_event"/>
                     <signal name="button_press_event" handler="on_drawingarea2_button_press_event"/>
+                    <signal name="key_press_event" handler="on_drawingarea2_key_event"/>
                     <signal name="motion_notify_event" handler="on_drawingarea2_motion_notify_event"/>
                     <signal name="button_release_event" handler="on_drawingarea2_button_release_event"/>
+                    <signal name="key_release_event" handler="on_drawingarea2_key_event"/>
                   </object>
                 </child>
                 <child type="label">

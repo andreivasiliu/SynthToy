@@ -1,12 +1,11 @@
 
-/* mskadapter.c */
-
 typedef void (*MskAdapterCallback)(void *source, void *destination, int start, int frames);
 
 typedef enum
 {
     MSK_PROCESSOR,
     MSK_ADAPTER,
+    MSK_DEFAULTVALUE,
 } MskProcessorType;
 
 /* This is used as a 'task' in a list of processing items. */
@@ -22,14 +21,23 @@ struct _MskProcessor
             MskModule *module;
         } processor;
 
-        /* Type 2.. converts data between different port types */
+        /* Type 2.. converts data between different port types. */
         struct
         {
             MskAdapterCallback callback;
             MskPort *input_port;
         } adapter;
+
+        /* Type 3.. supplies an input port with its default value. */
+        struct
+        {
+            MskPort *input_port;
+        } defaultvalue;
     };
 };
+
+
+/* mskadapter.c */
 
 MskAdapterCallback msk_get_adapter(guint source_port_type, guint destination_port_type);
 

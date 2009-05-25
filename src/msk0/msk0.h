@@ -143,8 +143,6 @@ struct _MskModule
 
     GPtrArray *state;
     gsize state_size;
-    void *global_state;
-    gsize global_state_size;
 
     gboolean prepared;
 
@@ -169,6 +167,7 @@ struct _MskProperty
 /*** Functions ***/
 void MSK_API msk_module_activate(MskModule *mod);
 void MSK_API msk_module_deactivate(MskModule *mod);
+void MSK_API msk_module_destroy(MskModule *mod);
 
 void MSK_API msk_module_set_float_property(MskModule *mod, gchar *name, gfloat value);
 
@@ -182,6 +181,8 @@ gpointer      MSK_API msk_module_get_output_buffer(MskModule *mod, gchar *name);
 
 void MSK_API msk_connect_ports(MskModule *left, gchar *left_port_name,
                        MskModule *right, gchar *right_port_name);
+void MSK_API msk_disconnect_input_port(MskPort *in_port);
+void MSK_API msk_disconnect_output_port(MskPort *out_port);
 
 MskContainer MSK_API *msk_container_create(MskContainer *parent);
 MskContainer MSK_API *msk_instrument_create(MskContainer *parent);
@@ -193,7 +194,6 @@ MskModule MSK_API *msk_input_create(MskContainer *parent);
 MskModule MSK_API *msk_output_create(MskContainer *parent);
 MskModule MSK_API *msk_voicenumber_create(MskContainer *parent);
 MskModule MSK_API *msk_constant_create(MskContainer *parent);
-MskModule MSK_API *msk_autoconstant_create(MskContainer *parent);
 MskModule MSK_API *msk_oscillator_create(MskContainer *parent);
 MskModule MSK_API *msk_pitchtofrequency_create(MskContainer *parent);
 MskModule MSK_API *msk_addmul_create(MskContainer *parent);

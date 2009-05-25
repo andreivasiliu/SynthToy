@@ -12,9 +12,6 @@ struct _GMPort
     /* Port's position on the module. */
     int pos_x;
     int pos_y;
-
-    /* Destination. */
-    int dest_port_nr;
 };
 
 struct _GraphicalModule
@@ -47,10 +44,17 @@ GraphicalModule *find_gmod(MskModule *mod);
 void draw_module(MskModule *mod, long x, long y);
 void redraw_module(MskModule *mod);
 void gmsk_invalidate();
+void gmsk_select_connection(GMPort *connection);
+void gmsk_select_module(GraphicalModule *gmod);
 
 
 /* gmsknavbar.c */
 void gmsk_paint_navbar(cairo_t *cr);
+
+
+/* gmskselect.c */
+gboolean is_point_near_bezier_curve(int x, int y,
+        int p1x, int p1y, int q1x, int q1y, int q2x, int q2y, int p2x, int p2y);
 
 
 /* globals */

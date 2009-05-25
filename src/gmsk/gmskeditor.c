@@ -30,6 +30,7 @@ int dragging_port_to_x;
 int dragging_port_to_y;
 
 GraphicalModule *selected_module;
+GMPort *selected_connection;
 
 void draw_module(MskModule *mod, long x, long y)
 {
@@ -283,6 +284,32 @@ GraphicalModule *find_gmod(MskModule *mod)
 }
 
 
+void get_absolute_gmport_position(GMPort *gmport, int *x, int *y)
+{
+    *x = gmport->owner->x + gmport->pos_x + 0.5;
+    *y = gmport->owner->y + gmport->pos_y + 0.5;
+}
+
+GMPort *get_peer_gmport(GMPort *input_gmport)
+{
+    MskPort *dest_port;
+    GraphicalModule *gmod;
+    int nr;
+
+    dest_port = input_gmport->port->input.connection;
+    if ( !dest_port )
+        return NULL;
+
+    gmod = find_gmod(dest_port->owner);
+    if ( !gmod )
+        return NULL;
+
+    // This looks messy.. maybe it should be changed.
+    nr = g_list_index(gmod->mod->out_ports, dest_port);
+    return &gmod->out_ports[nr];
+}
+
+
 void redraw_module(MskModule *mod)
 {
     GraphicalModule *gmod;
@@ -291,7 +318,7 @@ void redraw_module(MskModule *mod)
     if ( !gmod )
         return;
 
-    /* Memory leak. */
+    // TODO: Memory leak.
     graphical_modules = g_list_remove(graphical_modules, gmod);
     draw_module(mod, gmod->x, gmod->y);
 }
@@ -346,7 +373,10 @@ void draw_connections(cairo_t *cr)
                                src_x - 20, src_y,
                                dest_x + 20, dest_y,
                                dest_x, dest_y);
-                cairo_set_source_rgb(cr, 1, 0.8, 0.8);
+                if ( gmport == selected_connection )
+                    cairo_set_source_rgb(cr, 1, 1, 1);
+                else
+                    cairo_set_source_rgb(cr, 1, 0.8, 0.8);
                 cairo_set_line_width(cr, 1);
                 cairo_stroke(cr);
             }
@@ -495,6 +525,43 @@ GMPort *get_gmport_at(GraphicalModule *gmod, int x, int y, int *type)
     return NULL;
 }
 
+GMPort *get_connection_at(int x, int y)
+{
+    GMPort *output_gmport, *input_gmport;
+    GList *item;
+    int i;
+
+    for ( item = graphical_modules; item; item = item->next )
+    {
+        GraphicalModule *gmod = item->data;
+
+        if ( gmod->mod->parent != current_container )
+            continue;
+
+        input_gmport = gmod->in_ports;
+        for ( i = 0; i < gmod->in_ports_nr; i++, input_gmport++ )
+        {
+            int src_x, src_y, dest_x, dest_y;
+
+            output_gmport = get_peer_gmport(input_gmport);
+            if ( !output_gmport )
+                continue;
+
+            get_absolute_gmport_position(output_gmport, &src_x, &src_y);
+            get_absolute_gmport_position(input_gmport, &dest_x, &dest_y);
+
+            if ( is_point_near_bezier_curve(x, y,
+                    src_x, src_y,
+                    src_x - 20, src_y,
+                    dest_x + 20, dest_y,
+                    dest_x, dest_y) )
+                return input_gmport;
+        }
+    }
+
+    return NULL;
+}
+
 void gmsk_connect_gmports(GMPort *output, GMPort *input)
 {
     gmsk_lock_mutex();
@@ -509,8 +576,16 @@ void gmsk_connect_gmports(GMPort *output, GMPort *input)
 
 MskModule *msk_get_selected_module()
 {
-    if (selected_module)
+    if ( selected_module )
         return selected_module->mod;
+
+    return NULL;
+}
+
+MskPort *msk_get_selected_connection()
+{
+    if ( selected_connection )
+        return selected_connection->port;
 
     return NULL;
 }
@@ -571,20 +646,38 @@ gboolean gmsk_mouse_motion_event(int x, int y, int modifiers)
 
 void gmsk_select_module(GraphicalModule *gmod)
 {
+    if ( selected_connection )
+        gmsk_select_connection(NULL);
+
     /* Select it, and bring it to the top. */
     selected_module = gmod;
-    graphical_modules = g_list_remove(graphical_modules, gmod);
-    graphical_modules = g_list_append(graphical_modules, gmod);
+
+    if ( selected_module )
+    {
+        graphical_modules = g_list_remove(graphical_modules, gmod);
+        graphical_modules = g_list_append(graphical_modules, gmod);
+    }
 
     if ( select_module_callback )
-        select_module_callback(gmod->mod, select_module_userdata);
+        select_module_callback(gmod ? gmod->mod : NULL, select_module_userdata);
+}
+
+void gmsk_select_connection(GMPort *connection)
+{
+    if ( selected_module )
+        gmsk_select_module(NULL);
+
+    selected_connection = connection;
+
+    /* Maybe there will be a callback here... but for now we don't need it. */
 }
 
 gboolean gmsk_mouse_press_event(int x, int y, int button, int type, int modifiers)
 {
     GraphicalModule *gmod;
+    GMPort *connection;
 
-    /* Only left mouse button can drag. */
+    /* Only left mouse button can select and drag. */
     if ( button != 1 )
         return FALSE;
 
@@ -628,6 +721,23 @@ gboolean gmsk_mouse_press_event(int x, int y, int button, int type, int modifier
         gmsk_invalidate();
 
         return TRUE;
+    }
+
+    /* Did we click on a connection? */
+    connection = get_connection_at(x, y);
+    if ( connection )
+    {
+        gmsk_select_connection(connection);
+        gmsk_invalidate();
+
+        return TRUE;
+    }
+
+    /* Click on empty space deselects a connection. */
+    if ( !connection )
+    {
+        gmsk_select_connection(NULL);
+        gmsk_invalidate();
     }
 
     /* Double-click on empty space? */
@@ -690,5 +800,34 @@ MskModule *gmsk_get_selected_module()
         return selected_module->mod;
 
     return NULL;
+}
+
+void gmsk_delete_selected()
+{
+    gmsk_lock_mutex();
+
+    if ( selected_module )
+    {
+        GraphicalModule *doomed_gmod = selected_module;
+
+        gmsk_select_module(NULL);
+        graphical_modules = g_list_remove(graphical_modules, doomed_gmod);
+        // TODO: free it.
+        msk_module_destroy(doomed_gmod->mod);
+
+        gmsk_invalidate();
+    }
+
+    if ( selected_connection )
+    {
+        GMPort *doomed_connection = selected_connection;
+
+        gmsk_select_connection(NULL);
+        msk_disconnect_input_port(doomed_connection->port);
+
+        gmsk_invalidate();
+    }
+
+    gmsk_unlock_mutex();
 }
 

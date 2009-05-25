@@ -5,7 +5,7 @@ BINEXT = .exe
 MODEXT = .dll
 
 OBJ1 = first.o events.o virkb.o process.o menu.o \
-       gmsk${MODEXT} msk0$(MODEXT) modwinmm$(MODEXT)
+       msk0$(MODEXT) gmsk${MODEXT} modwinmm$(MODEXT)
 
 
 

@@ -16,7 +16,6 @@ const struct
     { "output", &msk_output_create },
     { "voicenumber", &msk_voicenumber_create },
     { "constant", &msk_constant_create },
-    { "autoconstant", &msk_autoconstant_create },
     { "pitch to frequency", &msk_pitchtofrequency_create },
     { "addmul", &msk_addmul_create },
     { "add", &msk_add_create },

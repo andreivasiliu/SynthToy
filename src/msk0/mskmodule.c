@@ -35,15 +35,33 @@ MskModule *msk_module_create(MskContainer *parent, gchar *name,
 
 void msk_module_destroy(MskModule *mod)
 {
+    GList *item;
+
     /* Unlink all ports. */
-    // TODO
+    for ( item = mod->in_ports; item; item = item->next )
+    {
+        MskPort *input_port = item->data;
+
+        if ( input_port->input.connection )
+            msk_disconnect_input_port(input_port);
+    }
+    for ( item = mod->in_ports; item; item = item->next )
+    {
+        MskPort *output_port = item->data;
+
+        msk_disconnect_output_port(output_port);
+    }
 
     /* Unlink from world. */
     if ( mod->parent )
+    {
         mod->parent->module_list = g_list_remove(mod->parent->module_list, mod);
-    // temp
-    //if ( mod->parent )
-    //    mod->parent->process_order = g_list_remove(mod->parent->process_order, mod);
+        msk_container_sort(mod->parent);
+    }
+
+    /* Clear its state, if any. */
+    if ( mod->state )
+        msk_module_deactivate(mod);
 
     /* Free ports. */
     // TODO
@@ -112,17 +130,6 @@ void msk_add_state(MskModule *module,
     module->activate = activate;
     module->deactivate = deactivate;
     module->state_size = state_size;
-}
-
-
-void msk_add_global_state(MskModule *module,
-                          MskGlobalActivateCallback global_activate,
-                          MskGlobalDeactivateCallback global_deactivate,
-                          gsize state_size)
-{
-    module->global_activate = global_activate;
-    module->global_deactivate = global_deactivate;
-    module->global_state_size = state_size;
 }
 
 
@@ -218,19 +225,28 @@ void msk_disconnect_input_port(MskPort *in_port)
     in_port->input.connection = NULL;
     out_port->output.connections = g_list_remove(out_port->output.connections, in_port);
 
-    /* This happens if the port needs an adapter to convert from a different
-     * type of data. */
-    if ( in_port->buffer )
-    {
-        g_free(in_port->buffer);
-        in_port->buffer = NULL;
+    if ( !in_port->buffer )
+        in_port->buffer = create_port_buffer(in_port->port_type, in_port->owner->world);
 
-        msk_container_sort(in_port->owner->parent);
+    msk_container_sort(in_port->owner->parent);
+}
+
+
+void msk_disconnect_output_port(MskPort *out_port)
+{
+    MskPort *in_port;
+
+    while ( out_port->output.connections )
+    {
+        in_port = g_list_first(out_port->output.connections)->data;
+
+        msk_disconnect_input_port(in_port);
     }
 }
 
+
 // TODO: the error's 'domain' and 'code' should probably not be 0. Find
-// prober values for it.
+// proper values for it.
 
 static gboolean can_connect_ports(MskModule *left, gchar *left_port_name,
                                   MskModule *right, gchar *right_port_name,
@@ -310,15 +326,11 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
 
     if ( right_port->input.connection )
     {
-        MskModule *remote_mod = right_port->input.connection->owner;
+        MskPort *old_left_port = right_port->input.connection;
 
-        msk_disconnect_input_port(right_port);
-
-        // TODO: strcmp sucks.. also, the 'autoconstant' type must die.
-        if ( !strcmp(remote_mod->name, "autoconstant") )
-        {
-            msk_module_destroy(remote_mod);
-        }
+        right_port->input.connection = NULL;
+        old_left_port->output.connections =
+            g_list_remove(old_left_port->output.connections, right_port);
     }
 
     left_port->output.connections = g_list_append(left_port->output.connections, right_port);
@@ -327,8 +339,13 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
     /* Does it need an adapter? If so, then it also needs a separate buffer. */
     if ( left_port->port_type != right_port->port_type )
     {
-        g_assert(right_port->buffer == NULL);
-        right_port->buffer = create_port_buffer(right_port->port_type, right->world);
+        if ( !right_port->buffer )
+            right_port->buffer = create_port_buffer(right_port->port_type, right->world);
+    }
+    else if ( right_port->buffer )
+    {
+        g_free(right_port->buffer);
+        right_port->buffer = NULL;
     }
 
 /*    // TODO: use something other than left_port
@@ -430,7 +447,7 @@ MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat defa
 
     mod->in_ports = g_list_append(mod->in_ports, port);
 
-    if ( mod->parent )
+/*    if ( mod->parent )
     {
         MskModule *ac;
 
@@ -440,10 +457,12 @@ MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat defa
 
         msk_connect_ports(ac, "output", mod, port->name);
     }
-    else
+    else*/
     {
         port->buffer = create_port_buffer(port->port_type, mod->world);
     }
+
+    msk_container_sort(mod->parent);
 
     return port;
 }
@@ -466,7 +485,14 @@ void msk_remove_input_port(MskModule *mod)
     in_port = last_item->data;
     mod->in_ports = g_list_delete_link(mod->in_ports, last_item);
     if ( in_port->input.connection )
-        msk_disconnect_input_port(in_port);
+    {
+        MskPort *out_port = in_port->input.connection;
+
+        //msk_disconnect_input_port(in_port);
+        in_port->input.connection = NULL;
+        out_port->output.connections = g_list_remove(out_port->output.connections, in_port);
+        msk_container_sort(mod->parent);
+    }
 
     /* Free. */
     g_free(in_port->name);

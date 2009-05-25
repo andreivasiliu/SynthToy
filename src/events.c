@@ -77,6 +77,22 @@ G_MODULE_EXPORT gboolean on_drawingarea3_key_event(GtkObject *object,
     return FALSE;
 }
 
+G_MODULE_EXPORT gboolean on_drawingarea2_key_event(GtkObject *object,
+                                                   GdkEventKey *event)
+{
+    if ( event->keyval == GDK_Delete )
+    {
+        gmsk_delete_selected();
+        return TRUE;
+    }
+    else
+    {
+        on_drawingarea3_key_event(GTK_OBJECT(virkb), event);
+    }
+
+    return FALSE;
+}
+
 G_MODULE_EXPORT void on_drawingarea3_motion_notify_event(GtkObject *object,
                                                          GdkEventMotion *event)
 {

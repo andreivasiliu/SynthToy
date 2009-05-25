@@ -95,6 +95,26 @@ void msk_container_process(MskContainer *self, int start, int nframes, guint voi
 
                 task->adapter.callback(output_buffer, input_buffer, start, nframes);
             }
+            else if ( task->type == MSK_DEFAULTVALUE )
+            {
+                MskPort *input_port = task->defaultvalue.input_port;
+
+                if ( input_port->port_type == MSK_AUDIO_DATA )
+                {
+                    float *buffer = input_port->buffer;
+                    int i;
+
+                    for ( i = start; i < start + nframes; i++ )
+                        buffer[i] = input_port->default_value;
+                }
+                else if ( input_port->port_type == MSK_CONTROL_DATA )
+                {
+                    float *buffer = input_port->buffer;
+                    *buffer = input_port->default_value;
+                }
+                else
+                    g_error("Unknown port type.");
+            }
         }
     }
 }
@@ -147,7 +167,15 @@ static void add_module_as_task(MskModule *mod, GList **process_order)
         MskPort *linked_port;
 
         if ( !port->input.connection )
+        {
+            /* Add a task that fills the port with its default value. */
+            task = g_new(MskProcessor, 1);
+            task->type = MSK_DEFAULTVALUE;
+            task->defaultvalue.input_port = port;
+
+            *process_order = g_list_append(*process_order, task);
             continue;
+        }
 
         linked_port = port->input.connection;
 
