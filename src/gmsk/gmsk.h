@@ -35,7 +35,7 @@ MskContainer GMSK_API *gmsk_create_container(char *name);
 
 /* gmsksaveload.c */
 gboolean GMSK_API gmsk_save_world_to_file(const gchar *filename, GError **error);
-gboolean GMSK_API gmsk_load_world_from_file(const gchar *filename, GError **error);
+MskContainer GMSK_API *gmsk_load_world_from_file(const gchar *filename, GError **error);
 
 
 /* gmskeditor.c */

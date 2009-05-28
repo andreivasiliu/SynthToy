@@ -552,8 +552,8 @@ GMPort *get_connection_at(int x, int y)
 
             if ( is_point_near_bezier_curve(x, y,
                     src_x, src_y,
-                    src_x - 20, src_y,
-                    dest_x + 20, dest_y,
+                    src_x + 20, src_y,
+                    dest_x - 20, dest_y,
                     dest_x, dest_y) )
                 return input_gmport;
         }
@@ -694,6 +694,8 @@ gboolean gmsk_mouse_press_event(int x, int y, int button, int type, int modifier
         {
             dragged_port = gmport;
             dragged_port_is_output = (gmport_type == 2);
+            dragging_port_to_x = x;
+            dragging_port_to_y = y;
 
             return TRUE;
         }

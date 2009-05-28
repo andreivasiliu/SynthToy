@@ -22,14 +22,14 @@ static void load_callback(GKeyFile *keyfile, MskModule *module, char *id)
 }
 
 
-gboolean gmsk_load_world_from_file(const gchar *filename, GError **error)
+MskContainer *gmsk_load_world_from_file(const gchar *filename, GError **error)
 {
     MskContainer *world;
 
     world = msk_load_world_from_file(filename, &load_callback, error);
 
     if ( *error )
-        return FALSE;
+        return NULL;
 
     gmsk_lock_mutex();
 
@@ -39,8 +39,7 @@ gboolean gmsk_load_world_from_file(const gchar *filename, GError **error)
 
     gmsk_unlock_mutex();
 
-    g_print("Awesomeness!\n");
-    return TRUE;
+    return world;
 }
 
 

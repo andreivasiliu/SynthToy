@@ -209,11 +209,12 @@ G_MODULE_EXPORT void on_menuitem_open_activate(GtkMenuItem *menuitem,
 
     if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
     {
+        MskContainer *new_world;
         char *filename;
         GError *error = NULL;
 
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (dialog));
-        gmsk_load_world_from_file(filename, &error);
+        new_world = gmsk_load_world_from_file(filename, &error);
 
         if ( error )
         {
@@ -224,6 +225,13 @@ G_MODULE_EXPORT void on_menuitem_open_activate(GtkMenuItem *menuitem,
                     GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s", error->message);
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
+        }
+        else
+        {
+            gmsk_lock_mutex();
+            msk_world_destroy(aural_root);
+            aural_root = new_world;
+            gmsk_unlock_mutex();
         }
     }
 

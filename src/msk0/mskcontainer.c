@@ -54,12 +54,32 @@ void msk_container_process(MskContainer *self, int start, int nframes, guint voi
     GList *item;
     int v;
 
+    if ( self->block_size_limit && self->block_size_limit < nframes )
+    {
+        gsize processed_frames = 0;
+
+        while ( processed_frames != nframes )
+        {
+            gsize new_nframes;
+
+            if ( nframes - processed_frames > self->block_size_limit )
+                new_nframes = self->block_size_limit;
+            else
+                new_nframes = nframes - processed_frames;
+
+            msk_container_process(self, start + processed_frames, new_nframes, voice);
+            processed_frames += new_nframes;
+        }
+
+        return;
+    }
+
     // TODO: This must go away; find a better way to initialize those buffers.
     for ( item = self->module->out_ports; item; item = item->next )
     {
         MskPort *port = item->data;
 
-        memset(port->buffer, 0, self->module->world->block_size*sizeof(float));
+        memset(port->buffer + start * sizeof(float), 0, nframes * sizeof(float));
     }
 
     for ( v = 0; v < self->voices; v++ )
@@ -83,6 +103,23 @@ void msk_container_process(MskContainer *self, int start, int nframes, guint voi
 
                 if ( mod->container )
                     msk_container_process(mod->container, start, nframes, v);
+            }
+            if ( task->type == MSK_HALFPROCESSOR )
+            {
+                MskModule *mod = task->halfprocessor.module;
+                MskProcessCallback process;
+
+                if ( task->halfprocessor.input )
+                    process = mod->process_input;
+                else
+                    process = mod->process_output;
+
+                if ( process )
+                {
+                    //void *state = g_ptr_array_index(mod->state, voice * self->voice_size + v);
+                    void *state = g_ptr_array_index(mod->state, v * self->voice_size + voice);
+                    process(mod, start, nframes, state);
+                }
             }
             else if ( task->type == MSK_ADAPTER )
             {
@@ -156,6 +193,126 @@ MskContainer *msk_container_create(MskContainer *parent)
 }
 
 
+
+static gboolean can_split_a_delay(MskContainer *container)
+{
+    /* Search for the delay with the highest block size limiter.. */
+
+    MskModule *mod, *split_mod = NULL;
+    GList *lmod;
+
+    for ( lmod = container->module_list; lmod; lmod = lmod->next )
+    {
+        mod = lmod->data;
+
+        if ( mod->can_split && !mod->is_split )
+            if ( !split_mod || split_mod->delay_limiter < mod->delay_limiter )
+                split_mod = mod;
+    }
+
+    if ( !split_mod )
+        return FALSE;
+
+    split_mod->is_split = TRUE;
+    return TRUE;
+}
+
+static gboolean check_for_loop(MskModule *module)
+{
+    GList *lport;
+
+    if ( module->is_split )
+        return FALSE;
+
+    if ( module->could_cause_loop == TRUE )
+        return TRUE;
+
+    module->could_cause_loop = TRUE;
+
+    for ( lport = module->in_ports; lport; lport = lport->next )
+    {
+        MskPort *port = (MskPort*) lport->data;
+        MskModule *linked_mod;
+
+        if ( !port->input.connection )
+            continue;
+
+        linked_mod = port->input.connection->owner;
+
+        if ( linked_mod->prepared )
+            continue;
+        else
+        {
+            if ( check_for_loop(linked_mod) )
+                return TRUE;
+        }
+    }
+
+    module->could_cause_loop = FALSE;
+    module->prepared = TRUE;
+
+    return FALSE;
+}
+
+static gboolean container_has_loop(MskContainer *container)
+{
+    MskModule *mod;
+    GList *lmod;
+
+    for ( lmod = container->module_list; lmod; lmod = lmod->next )
+    {
+        mod = lmod->data;
+        mod->is_split = FALSE;
+    }
+
+    while ( TRUE )
+    {
+        gboolean has_loop = FALSE;
+
+        for ( lmod = container->module_list; lmod; lmod = lmod->next )
+        {
+            mod = lmod->data;
+            mod->prepared = FALSE;
+            mod->could_cause_loop = FALSE;
+        }
+
+        for ( lmod = container->module_list; lmod; lmod = lmod->next )
+        {
+            mod = lmod->data;
+
+            if ( !mod->prepared )
+            {
+                if ( check_for_loop(mod) )
+                {
+                    has_loop = TRUE;
+                    break;
+                }
+            }
+        }
+
+        if ( !has_loop )
+            return FALSE;
+
+        if ( !can_split_a_delay(container) )
+            return TRUE;
+
+        /* If a split could be made, try again. */
+    }
+}
+
+
+static MskProcessor *add_processor(guint type, GList **process_order)
+{
+    MskProcessor *task = g_new0(MskProcessor, 1);
+    task->type = type;
+
+    // TODO: g_list_append takes time... it's better to prepend on linked
+    // lists, and then reverse the order.
+    *process_order = g_list_append(*process_order, task);
+
+    return task;
+}
+
 static void add_module_as_task(MskModule *mod, GList **process_order)
 {
     GList *lport;
@@ -171,41 +328,76 @@ static void add_module_as_task(MskModule *mod, GList **process_order)
         if ( !port->input.connection )
         {
             /* Add a task that fills the port with its default value. */
-            task = g_new(MskProcessor, 1);
-            task->type = MSK_DEFAULTVALUE;
+            task = add_processor(MSK_DEFAULTVALUE, process_order);
             task->defaultvalue.input_port = port;
 
-            *process_order = g_list_append(*process_order, task);
             continue;
         }
 
         linked_port = port->input.connection;
 
-        if ( !linked_port->owner->prepared )
+        if ( linked_port->owner->is_split )
+        {
+            task = add_processor(MSK_HALFPROCESSOR, process_order);
+            task->halfprocessor.module = linked_port->owner;
+            task->halfprocessor.input = FALSE;
+        }
+        else if ( !linked_port->owner->prepared )
             add_module_as_task(linked_port->owner, process_order);
 
         /* If it needs an adapter for this port, add it as a task. */
         if ( port->port_type != linked_port->port_type )
         {
-            task = g_new0(MskProcessor, 1);
-            task->type = MSK_ADAPTER;
+            task = add_processor(MSK_ADAPTER, process_order);
             task->adapter.callback = msk_get_adapter(linked_port->port_type,
                     port->port_type);
             task->adapter.input_port = port;
             g_assert(task->adapter.callback != NULL);
-
-            *process_order = g_list_append(*process_order, task);
         }
     }
 
-    task = g_new0(MskProcessor, 1);
-    task->type = MSK_PROCESSOR;
-    task->processor.module = mod;
-
-    // TODO: g_list_append takes time... it's better to prepend on linked
-    // lists, and then reverse the order.
-    *process_order = g_list_append(*process_order, task);
+    if ( !mod->is_split )
+    {
+        task = add_processor(MSK_PROCESSOR, process_order);
+        task->processor.module = mod;
+    }
+    else
+    {
+        task = add_processor(MSK_HALFPROCESSOR, process_order);
+        task->halfprocessor.module = mod;
+        task->halfprocessor.input = TRUE;
+    }
 }
+
+
+static void print_list_order(GList *items, gint indent)
+{
+    GList *item;
+
+    for ( item = items; item; item = item->next )
+    {
+        MskProcessor *task = item->data;
+
+        if ( task->type == MSK_PROCESSOR )
+        {
+            MskModule *mod = task->processor.module;
+
+            g_print(" %*s- %s\n", indent, "", mod->name);
+            if ( mod->container )
+                print_list_order(mod->container->processing_list, indent + 2);
+        }
+        else if ( task->type == MSK_HALFPROCESSOR )
+        {
+            MskModule *mod = task->halfprocessor.module;
+
+            g_print(" %*s- %s (%s-half)\n", indent, "", mod->name,
+                    task->halfprocessor.input ? "input" : "output");
+        }
+        else if ( task->type == MSK_ADAPTER )
+            g_print(" %*s- [port adapter]\n", indent, "");
+    }
+}
+
 
 /* Attempt to do a topological sort of its modules, and construct a list of
  * 'tasks' from that. */
@@ -213,6 +405,9 @@ gboolean msk_container_sort(MskContainer *container)
 {
     GList *processing_list = NULL;
     GList *lmod;
+
+    if ( container_has_loop(container) )
+        g_error("Loop in container.");
 
     for ( lmod = container->module_list; lmod; lmod = lmod->next )
         ((MskModule *)lmod->data)->prepared = FALSE;
@@ -223,6 +418,11 @@ gboolean msk_container_sort(MskContainer *container)
 
         if ( !mod->prepared )
             add_module_as_task(mod, &processing_list);
+
+        if ( mod->is_split && mod->delay_limiter &&
+                (mod->delay_limiter < container->block_size_limit ||
+                 !container->block_size_limit ) )
+            container->block_size_limit = mod->delay_limiter;
     }
 
     if ( container->processing_list )
@@ -233,6 +433,9 @@ gboolean msk_container_sort(MskContainer *container)
             g_free(item->data);
         g_list_free(container->processing_list);
     }
+
+    print_list_order(processing_list, 0);
+    g_print("Container block size limit: %d.\n", container->block_size_limit);
 
     container->processing_list = processing_list;
     return TRUE;

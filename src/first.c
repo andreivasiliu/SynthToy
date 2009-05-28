@@ -2,6 +2,8 @@
 #include <glib/gprintf.h>
 #include <stdlib.h>  // for exit()
 
+#include "msk0/msk0.h"
+#include "gmsk/gmsk.h"
 #include "header.h"
 
 #ifdef HAVE_JACK

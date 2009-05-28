@@ -34,6 +34,7 @@ extern GtkWidget *create_menu();
 extern float array[512];
 extern float array2[512];
 extern gdouble processing_time;
+MskContainer *aural_root;
 
 /* virkb.c */
 extern void paint_keyboard(GtkWidget *widget);

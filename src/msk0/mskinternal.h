@@ -4,6 +4,7 @@ typedef void (*MskAdapterCallback)(void *source, void *destination, int start, i
 typedef enum
 {
     MSK_PROCESSOR,
+    MSK_HALFPROCESSOR,
     MSK_ADAPTER,
     MSK_DEFAULTVALUE,
 } MskProcessorType;
@@ -21,14 +22,22 @@ struct _MskProcessor
             MskModule *module;
         } processor;
 
-        /* Type 2.. converts data between different port types. */
+        /* Type 2.. calls a module's 'process_input' or 'process_output'
+         * callback. */
+        struct
+        {
+            MskModule *module;
+            gboolean input;
+        } halfprocessor;
+
+        /* Type 3.. converts data between different port types. */
         struct
         {
             MskAdapterCallback callback;
             MskPort *input_port;
         } adapter;
 
-        /* Type 3.. supplies an input port with its default value. */
+        /* Type 4.. supplies an input port with its default value. */
         struct
         {
             MskPort *input_port;
@@ -54,6 +63,9 @@ void *msk_add_global_state(MskModule *module, gsize state_size);
 
 void msk_add_destroy_callback(MskModule *module, MskModuleDestroyCallback callback);
 
+void msk_add_split_personality(MskModule *module,
+                               MskProcessCallback process_input,
+                               MskProcessCallback process_output);
 
 void msk_dynamic_ports(MskModule *module,
                        MskDynamicPortAddCallback dynamic_port_add,

@@ -163,6 +163,18 @@ void msk_add_destroy_callback(MskModule *module, MskModuleDestroyCallback callba
 }
 
 
+/* This is for delays. When a delay is in a loop, it basically acts as two
+ * separate modules that break the loop. */
+void msk_add_split_personality(MskModule *module,
+                               MskProcessCallback process_input,
+                               MskProcessCallback process_output)
+{
+    module->process_input = process_input;
+    module->process_output = process_output;
+    module->can_split = TRUE;
+}
+
+
 void msk_dynamic_ports(MskModule *module,
                        MskDynamicPortAddCallback dynamic_port_add,
                        MskDynamicPortRemoveCallback dynamic_port_remove)

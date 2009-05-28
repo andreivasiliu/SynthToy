@@ -24,13 +24,9 @@ gboolean is_point_near_bezier_curve(int x, int y,
      * position [x,y]. */
     cairo_translate(cr, -x, -y);
 
-    g_print("1: %d, %d, %d, %d.\n", pixel[0], pixel[1], pixel[2], pixel[3]);
-
     /* Initialize with black. */
     cairo_set_source_rgb(cr, 0, 0, 0);
     cairo_paint(cr);
-
-    g_print("2: %d, %d, %d, %d.\n", pixel[0], pixel[1], pixel[2], pixel[3]);
 
     /* Draw the curve. */
     cairo_move_to(cr, p1x, p1y);
@@ -43,8 +39,6 @@ gboolean is_point_near_bezier_curve(int x, int y,
     /* Clean up. */
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
-
-    g_print("3: %d, %d, %d, %d.\n", pixel[0], pixel[1], pixel[2], pixel[3]);
 
     /* Did the curve pass through our pixel? */
     return pixel[0] != 0;

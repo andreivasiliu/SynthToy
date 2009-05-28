@@ -59,6 +59,8 @@ struct _MskContainer
 
     gboolean transparent;
 
+    gsize block_size_limit;
+
     /* Internal port-modules. */
     MskModule **in;
     MskModule **out;
@@ -146,12 +148,24 @@ struct _MskModule
     GPtrArray *state;
     gsize state_size;
     void *global_state;
-    gboolean prepared;
+
+    /* This is for delays. When a delay is in a loop, it basically acts as two
+     * separate modules that break the loop. */
+    gboolean can_split;
+    gboolean is_split;
+    int delay_limiter;
+    MskProcessCallback process_input;
+    MskProcessCallback process_output;
 
     // TODO: this workaround must go away.
     MskPort *mix_to;
 
-    /* Temporary; used when saving to file. */
+    /* Temporary fields. */
+
+    /* Used for sorting topologically, and finding loops. */
+    gboolean prepared;
+    gboolean could_cause_loop;
+    /* Used when saving to file. */
     int save_id;
 };
 

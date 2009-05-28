@@ -94,6 +94,7 @@ GtkWidget *create_menu()
     add_module_to_menu(create_menu, "Voice Velocity", "voicevelocity");
     add_module_to_menu(create_menu, "ADSR Envelope", "ADSR");
     add_module_to_menu(create_menu, "Parameter", "parameter");
+    add_module_to_menu(create_menu, "Delay", "delay");
 
 
     item = gtk_menu_item_new_with_label("Create macro");
