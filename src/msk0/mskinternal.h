@@ -67,11 +67,17 @@ void msk_add_split_personality(MskModule *module,
                                MskProcessCallback process_input,
                                MskProcessCallback process_output);
 
-void msk_dynamic_ports(MskModule *module,
+void msk_dynamic_ports(MskModule *module, gint dynamic_group_size,
                        MskDynamicPortAddCallback dynamic_port_add,
                        MskDynamicPortRemoveCallback dynamic_port_remove);
 
+void msk_add_port_to_buffer_group(MskPort *port, int group);
+
 void msk_module_activate(MskModule *mod);
+
+gpointer msk_port_get_input_buffer(MskPort *input_port);
+gpointer msk_port_get_output_buffer(MskPort *output_port);
+gpointer msk_port_get_buffer(MskPort *port);
 
 MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat default_value);
 void msk_remove_input_port(MskModule *mod);

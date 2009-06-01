@@ -265,6 +265,8 @@ static gboolean container_has_loop(MskContainer *container)
         mod->is_split = FALSE;
     }
 
+    container->block_size_limit = 0;
+
     while ( TRUE )
     {
         gboolean has_loop = FALSE;

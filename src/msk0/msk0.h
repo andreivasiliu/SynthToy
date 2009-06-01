@@ -18,6 +18,10 @@
 #define MSK_INT_PROPERTY        (1 << 3)
 #define MSK_STRING_PROPERTY     (1 << 4)
 
+/* Port flags. */
+#define MSK_INPUT_PORT          (1 << 0)
+#define MSK_OUTPUT_PORT         (1 << 1)
+
 /* Property flags. */
 #define MSK_PROPERTY_DEACTIVATES_MODULE  (1 << 0)
 
@@ -28,6 +32,7 @@ typedef struct _MskPort MskPort;
 typedef struct _MskModule MskModule;
 typedef struct _MskProperty MskProperty;
 typedef struct _MskProcessor MskProcessor;
+typedef struct _MskBufferList MskBufferList;
 
 typedef void (*MskProcessCallback)(MskModule *self, int start, int frames, void *state);
 typedef void (*MskActivateCallback)(MskModule *self, void *state);
@@ -103,8 +108,11 @@ struct _MskInstrument
 struct _MskPort
 {
     gchar *name;
-    guint port_type;
     MskModule *owner;
+
+    guint port_type;
+    guint flags;
+    gint group;
 
     union
     {
@@ -136,14 +144,23 @@ struct _MskModule
     MskActivateCallback activate;
     MskDeactivateCallback deactivate;
 
+    MskModuleDestroyCallback destroy_callback;
+
     MskDynamicPortAddCallback dynamic_port_add;
     MskDynamicPortRemoveCallback dynamic_port_remove;
-
-    MskModuleDestroyCallback destroy_callback;
+    guint dynamic_group_size;
+    guint dynamic_group_count;
 
     GList *in_ports;
     GList *out_ports;
     GList *properties;
+
+    struct
+    {
+        void ***group;
+        guint *group_size;
+        guint groups;
+    } buffer_groups;
 
     GPtrArray *state;
     gsize state_size;
@@ -187,6 +204,7 @@ void MSK_API msk_module_deactivate(MskModule *mod);
 void MSK_API msk_module_reactivate(MskModule *mod);
 void MSK_API msk_module_destroy(MskModule *mod);
 
+
 /* Properties. */
 void  MSK_API  msk_module_set_integer_property(MskModule *mod, gchar *name, gint value);
 int   MSK_API  msk_module_get_integer_property(MskModule *mod, gchar *name);
@@ -209,6 +227,11 @@ void MSK_API msk_connect_ports(MskModule *left, gchar *left_port_name,
                        MskModule *right, gchar *right_port_name);
 void MSK_API msk_disconnect_input_port(MskPort *in_port);
 void MSK_API msk_disconnect_output_port(MskPort *out_port);
+
+void MSK_API msk_module_add_dynamic_ports(MskModule *module);
+void MSK_API msk_module_remove_dynamic_ports(MskModule *module);
+gboolean MSK_API msk_module_remove_unused_dynamic_ports(MskModule *module);
+
 
 /* Module constructors. */
 MskContainer MSK_API *msk_container_create(MskContainer *parent);

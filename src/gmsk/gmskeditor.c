@@ -29,6 +29,7 @@ int dragged_port_is_output;
 int dragging_port_to_x;
 int dragging_port_to_y;
 
+GraphicalModule *auto_extended_module;
 GraphicalModule *selected_module;
 GMPort *selected_connection;
 
@@ -129,6 +130,7 @@ void draw_module(MskModule *mod, long x, long y)
 
             ports_right = g_list_append(ports_right, port);
             iter_right = g_list_next(iter_right);
+            gmport_right++;
         }
 
         surface_height += MAX(left_height, right_height);
@@ -634,8 +636,37 @@ gboolean gmsk_mouse_motion_event(int x, int y, int modifiers)
 
     if ( dragged_port )
     {
+        GraphicalModule *gmod = get_gmod_at(x, y);
+
         dragging_port_to_x = x;
         dragging_port_to_y = y;
+
+        /* Dragging over a module? Auto-extend it. */
+        if ( gmod && gmod != dragged_port->owner )
+        {
+            gmsk_lock_mutex();
+
+            if ( gmod != auto_extended_module )
+            {
+                msk_module_add_dynamic_ports(gmod->mod);
+                redraw_module(gmod->mod);
+                // TODO: this is because in this quick-and-dirty implementation
+                // the gmod is replaced when redrawn.
+                auto_extended_module = find_gmod(gmod->mod);
+            }
+
+            gmsk_unlock_mutex();
+        }
+        else if ( auto_extended_module )
+        {
+            gmsk_lock_mutex();
+
+            msk_module_remove_unused_dynamic_ports(auto_extended_module->mod);
+            redraw_module(auto_extended_module->mod);
+            auto_extended_module = NULL;
+
+            gmsk_unlock_mutex();
+        }
 
         gmsk_invalidate();
     }
@@ -793,6 +824,13 @@ gboolean gmsk_mouse_release_event(int x, int y, int button, int modifiers)
         gmsk_invalidate();
     }
 
+    if ( auto_extended_module )
+    {
+        msk_module_remove_unused_dynamic_ports(auto_extended_module->mod);
+        redraw_module(auto_extended_module->mod);
+        auto_extended_module = NULL;
+    }
+
     return FALSE;
 }
 
@@ -826,6 +864,8 @@ void gmsk_delete_selected()
 
         gmsk_select_connection(NULL);
         msk_disconnect_input_port(doomed_connection->port);
+        if ( msk_module_remove_unused_dynamic_ports(doomed_connection->port->owner) )
+            redraw_module(doomed_connection->owner->mod);
 
         gmsk_invalidate();
     }

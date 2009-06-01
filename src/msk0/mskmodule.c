@@ -175,12 +175,139 @@ void msk_add_split_personality(MskModule *module,
 }
 
 
-void msk_dynamic_ports(MskModule *module,
+void msk_dynamic_ports(MskModule *module, gint dynamic_group_size,
                        MskDynamicPortAddCallback dynamic_port_add,
                        MskDynamicPortRemoveCallback dynamic_port_remove)
 {
+    module->dynamic_group_size = dynamic_group_size;
     module->dynamic_port_add = dynamic_port_add;
     module->dynamic_port_remove = dynamic_port_remove;
+}
+
+
+void msk_module_add_dynamic_ports(MskModule *module)
+{
+    if ( module->dynamic_port_add )
+        module->dynamic_port_add(module);
+
+    module->dynamic_group_count++;
+}
+
+
+void msk_module_remove_dynamic_ports(MskModule *module)
+{
+    if ( module->dynamic_group_count <= 0 )
+        return;
+
+    if ( module->dynamic_port_remove )
+        module->dynamic_port_remove(module);
+
+    module->dynamic_group_count--;
+}
+
+// This should probably be implemented in the interface code, not this library.
+gboolean msk_module_remove_unused_dynamic_ports(MskModule *module)
+{
+    GList *item;
+
+    if ( !module->dynamic_port_remove )
+        return FALSE;
+
+    if ( !module->dynamic_group_count )
+        return FALSE;
+
+    while ( TRUE )
+    {
+        if ( !module->dynamic_group_count )
+            return TRUE;
+
+        /* Check if the last group of dynamic ports is unused. */
+        item = g_list_nth(module->in_ports,
+                g_list_length(module->in_ports) - module->dynamic_group_size);
+
+        if ( !item )
+            return TRUE;
+
+        for ( ; item; item = item->next )
+        {
+            MskPort *input_port = item->data;
+
+            /* If at least one port is connected, this group is used. */
+            if ( input_port->input.connection )
+                return TRUE;
+        }
+
+        module->dynamic_port_remove(module);
+        module->dynamic_group_count--;
+    }
+}
+
+
+static void add_port_to_group(MskPort *port)
+{
+    MskModule *module = port->owner;
+    int size;
+
+    if ( port->group < 0 )
+        return;
+
+    /* Resize buffers and initialize new elements in it. */
+    if ( port->group + 1 > module->buffer_groups.groups )
+    {
+        module->buffer_groups.group = g_renew(void**,
+                module->buffer_groups.group, port->group + 1);
+        module->buffer_groups.group_size = g_renew(guint,
+                module->buffer_groups.group_size, port->group + 1);
+
+        while ( port->group + 1 > module->buffer_groups.groups )
+        {
+            int i = module->buffer_groups.groups;
+
+            module->buffer_groups.group[i] = NULL;
+            module->buffer_groups.group_size[i] = 0;
+            module->buffer_groups.groups++;
+        }
+    }
+
+    size = ++module->buffer_groups.group_size[port->group];
+    module->buffer_groups.group[port->group] = g_renew(void*,
+            module->buffer_groups.group[port->group],
+            size);
+    module->buffer_groups.group[port->group][size - 1] =
+            msk_port_get_buffer(port);
+}
+
+static void update_buffer_groups(MskModule *module)
+{
+    GList *item;
+    int i;
+
+    /* Free the existing arrays. */
+    if ( module->buffer_groups.group )
+    {
+        for ( i = 0; i < module->buffer_groups.groups; i++ )
+            if ( module->buffer_groups.group[i] )
+                g_free(module->buffer_groups.group[i]);
+
+        g_free(module->buffer_groups.group);
+        g_free(module->buffer_groups.group_size);
+    }
+
+    module->buffer_groups.group = NULL;
+    module->buffer_groups.group_size = NULL;
+    module->buffer_groups.groups = 0;
+
+    for ( item = module->in_ports; item; item = item->next )
+        add_port_to_group((MskPort*) item->data);
+
+    for ( item = module->out_ports; item; item = item->next )
+        add_port_to_group((MskPort*) item->data);
+}
+
+void msk_add_port_to_buffer_group(MskPort *port, int group)
+{
+    port->group = group;
+    add_port_to_group(port);
 }
 
 
@@ -196,6 +323,7 @@ void msk_module_dynamic_port_remove(MskModule *module)
     if ( module->dynamic_port_remove )
         module->dynamic_port_remove(module);
 }
+
 
 
 MskPort *msk_module_get_input_port(MskModule *mod, gchar *port_name)
@@ -271,6 +399,7 @@ void msk_disconnect_input_port(MskPort *in_port)
         in_port->buffer = create_port_buffer(in_port->port_type, in_port->owner->world);
 
     msk_container_sort(in_port->owner->parent);
+    update_buffer_groups(in_port->owner);
 }
 
 
@@ -399,6 +528,7 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
     /* If this fails, then it's a bug in the code. The 'can_connect_ports'
      * function should catch everything. */
     msk_container_sort(left->parent);
+    update_buffer_groups(right_port->owner);
 }
 
 void msk_meld_ports(MskPort *inport, MskPort *outport)
@@ -486,6 +616,8 @@ MskPort *msk_add_input_port(MskModule *mod, gchar *name, guint type, gfloat defa
     port->port_type = type;
     port->default_value = default_value;
     port->owner = mod;
+    port->flags = MSK_INPUT_PORT;
+    port->group = -1;
 
     mod->in_ports = g_list_append(mod->in_ports, port);
 
@@ -533,8 +665,10 @@ void msk_remove_input_port(MskModule *mod)
         //msk_disconnect_input_port(in_port);
         in_port->input.connection = NULL;
         out_port->output.connections = g_list_remove(out_port->output.connections, in_port);
-        msk_container_sort(mod->parent);
     }
+
+    update_buffer_groups(mod);
+    msk_container_sort(mod->parent);
 
     /* Free. */
     g_free(in_port->name);
@@ -552,6 +686,8 @@ MskPort *msk_add_output_port(MskModule *mod, gchar *name, guint type)
     port->name = make_port_name(mod, name);
     port->port_type = type;
     port->owner = mod;
+    port->flags = MSK_OUTPUT_PORT;
+    port->group = -1;
 
     mod->out_ports = g_list_append(mod->out_ports, port);
     port->buffer = create_port_buffer(type, mod->world);
@@ -614,13 +750,9 @@ void msk_property_set_flags(MskProperty *property, guint flags)
     property->flags = flags;
 }
 
-gconstpointer msk_module_get_input_buffer(MskModule *mod, gchar *name)
+gpointer msk_port_get_input_buffer(MskPort *input_port)
 {
-    MskPort *input_port = msk_module_get_input_port(mod, name);
     MskPort *output_port;
-
-    if ( !input_port )
-        g_error("Output port '%s' was not found.", name);
 
     /* This is confusing, isn't it? That's what you get for having so many
      * cases. */
@@ -638,14 +770,9 @@ gconstpointer msk_module_get_input_buffer(MskModule *mod, gchar *name)
     }
 }
 
-
-gpointer msk_module_get_output_buffer(MskModule *mod, gchar *name)
+gpointer msk_port_get_output_buffer(MskPort *output_port)
 {
-    MskPort *output_port = msk_module_get_output_port(mod, name);
     MskPort *input_port;
-
-    if ( !output_port )
-        g_error("Output port '%s' was not found.", name);
 
     /* Follow connections and hardlinks ((TODO: which are now symlinks)) */
     while ( TRUE )
@@ -658,6 +785,40 @@ gpointer msk_module_get_output_buffer(MskModule *mod, gchar *name)
             return input_port->buffer;
         output_port = input_port->input.connection;
     }
+}
+
+gpointer msk_port_get_buffer(MskPort *port)
+{
+    if ( port->flags & MSK_INPUT_PORT )
+        return msk_port_get_input_buffer(port);
+    else if ( port->flags & MSK_OUTPUT_PORT )
+        return msk_port_get_output_buffer(port);
+    else
+    {
+        g_error("Unknown port type.");
+        return NULL;
+    }
+}
+
+gconstpointer msk_module_get_input_buffer(MskModule *mod, gchar *name)
+{
+    MskPort *input_port = msk_module_get_input_port(mod, name);
+
+    if ( !input_port )
+        g_error("Output port '%s' was not found.", name);
+
+    return msk_port_get_input_buffer(input_port);
+}
+
+
+gpointer msk_module_get_output_buffer(MskModule *mod, gchar *name)
+{
+    MskPort *output_port = msk_module_get_output_port(mod, name);
+
+    if ( !output_port )
+        g_error("Output port '%s' was not found.", name);
+
+    return msk_port_get_output_buffer(output_port);
 }
 
 
