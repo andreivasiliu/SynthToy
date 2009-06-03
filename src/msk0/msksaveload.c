@@ -154,8 +154,52 @@ MskContainer *msk_load_world_from_file(const gchar *filename,
 
             if ( !modules[i] )
             {
-                g_set_error(error, 0, 0, "The module factory does not know about modules of type '%s'.", type);
+                g_set_error(error, 0, 0, "The module factory does not know "
+                        "about modules of type '%s'.", type);
                 abort = TRUE;
+            }
+            else
+            {
+                int j;
+
+                for ( j = 0; ; j++ )
+                {
+                    MskProperty *property;
+                    char prop_id[128];
+                    char *prop_name, *prop_value;
+
+                    g_snprintf(prop_id, 128, "property-%d-name", j);
+                    prop_name = g_key_file_get_string(keyfile, id, prop_id, NULL);
+
+                    if ( !prop_name )
+                        break;
+
+                    property = msk_module_get_property(modules[i], prop_name);
+                    if ( !property )
+                    {
+                        g_set_error(error, 0, 0, "Invalid property '%s' for "
+                                "module '%s'.", prop_name, modules[i]->name);
+                        abort = TRUE;
+
+                        g_free(prop_name);
+                        break;
+                    }
+
+                    g_snprintf(prop_id, 128, "property-%d-value", j);
+                    prop_value = g_key_file_get_string(keyfile, id, prop_id, NULL);
+
+                    if ( !prop_value )
+                    {
+                        g_set_error(error, 0, 0, "Corrupted save-file: A "
+                                "property has a name but no corresponding value.");
+                        abort = TRUE;
+
+                        g_free(prop_name);
+                        break;
+                    }
+
+                    msk_property_set_value_from_string(property, prop_value);
+                }
             }
         }
 
@@ -263,7 +307,7 @@ static void tag_all_modules(MskContainer *container, int *module_id,
 
         if ( module->container )
             tag_all_modules(module->container, module_id, container_id);
-        else if ( !!strcmp(module->name, "autoconstant") )
+        else
             module->save_id = (*module_id)++;
     }
 }
@@ -273,11 +317,12 @@ static void save_module(GKeyFile *keyfile, MskModule *module, int *connection_id
 {
     GList *item;
     char id[128];
+    int i;
 
     /* Save the module itself... unless it must be saved by save_container. */
     /* Also ignore auto-constants, because those are created automatically. */
     // TODO: auto-constants must actually be removed... when they are, remove this too.
-    if ( module->container == NULL && !!strcmp(module->name, "autoconstant") )
+    if ( module->container == NULL )
     {
         g_snprintf(id, 128, "module %d", module->save_id);
         g_key_file_set_string(keyfile, id, "type", module->name);
@@ -298,6 +343,20 @@ static void save_module(GKeyFile *keyfile, MskModule *module, int *connection_id
             g_key_file_set_string(keyfile, id, "port-name", port->name);
         }
 
+        for ( i = 0, item = module->properties; item; i++, item = item->next )
+        {
+            MskProperty *property = item->data;
+            char *value = msk_property_get_value_as_string(property);
+            char prop_id[128];
+
+            g_snprintf(prop_id, 128, "property-%d-name", i);
+            g_key_file_set_string(keyfile, id, prop_id, property->name);
+            g_snprintf(prop_id, 128, "property-%d-value", i);
+            g_key_file_set_string(keyfile, id, prop_id, value);
+
+            g_free(value);
+        }
+
         modulesave_callback(keyfile, module, id);
     }
 
@@ -306,7 +365,7 @@ static void save_module(GKeyFile *keyfile, MskModule *module, int *connection_id
         MskPort *destport = item->data;
         MskPort *srcport = destport->input.connection;
 
-        if ( srcport && !!strcmp(srcport->owner->name, "autoconstant") )
+        if ( srcport )
         {
             const char *srctype = srcport->owner->container ? "source-container" : "source-module";
             const char *desttype = module->container ? "destination-container" : "destination-module";

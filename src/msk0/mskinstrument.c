@@ -4,8 +4,6 @@
 #include "msk0.h"
 #include "mskinternal.h"
 
-void msk_message_note_off(MskWorld *world, short note, short velocity);
-
 /* Find the first free voice, or the oldest used voice. */
 static int assign_free_voice(MskInstrument *instrument)
 {
@@ -32,19 +30,25 @@ static int assign_free_voice(MskInstrument *instrument)
 
 // TODO: This doesn't handle buggy double NoteOn events.
 // The name and MskWorld don't look good.
-void msk_message_note_on(MskWorld *world, short note, short velocity)
+void msk_message_note_on(MskWorld *world, short channel, short note, short velocity)
 {
     GList *item;
 
     if ( velocity == 0 )
-        return msk_message_note_off(world, note, 0);
+        return msk_message_note_off(world, channel, note, 0);
 
     // TODO: We're setting all instruments here, but they should be
     // checked for things like channel, key range, etc.
+    // UPDATE: Okay, channel partially done, but key range is still needed.
     for ( item = world->instruments; item; item = item->next )
     {
         MskInstrument *instrument = item->data;
-        int voice = assign_free_voice(instrument);
+        int voice;
+
+        if ( instrument->channel && channel && instrument->channel != channel )
+            continue;
+
+        voice = assign_free_voice(instrument);
 
         /* Instrument with 0 voices? */
         if ( voice < 0 )
@@ -56,7 +60,7 @@ void msk_message_note_on(MskWorld *world, short note, short velocity)
 }
 
 
-void msk_message_note_off(MskWorld *world, short note, short velocity)
+void msk_message_note_off(MskWorld *world, short channel, short note, short velocity)
 {
     GList *item;
     int voice;
@@ -66,6 +70,9 @@ void msk_message_note_off(MskWorld *world, short note, short velocity)
     {
         MskInstrument *instrument = item->data;
         int voices = instrument->container->voices;
+
+        if ( instrument->channel && channel && instrument->channel != channel )
+            continue;
 
         /* Find the voice with that MIDI note, if any. */
         for ( voice = 0; voice < voices; voice++ )

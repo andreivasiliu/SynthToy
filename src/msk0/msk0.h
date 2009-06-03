@@ -67,8 +67,7 @@ struct _MskContainer
     gsize block_size_limit;
 
     /* Internal port-modules. */
-    MskModule **in;
-    MskModule **out;
+    GList *input_modules;
 
     GList *module_list;
 
@@ -255,14 +254,16 @@ MskModule MSK_API *msk_voicevelocity_create(MskContainer *parent);
 MskModule MSK_API *msk_parameter_create(MskContainer *parent);
 MskModule MSK_API *msk_adsr_create(MskContainer *parent);
 MskModule MSK_API *msk_delay_create(MskContainer *parent);
+MskModule MSK_API *msk_firfilter_create(MskContainer *parent);
+MskModule MSK_API *msk_iirfilter_create(MskContainer *parent);
 
 /* MSK World. */
 MskContainer MSK_API *msk_world_create(gulong sample_rate, gsize block_size);
 void MSK_API msk_world_destroy(MskContainer *world);
 void MSK_API msk_world_prepare(MskContainer *container);
 void MSK_API msk_world_run(MskContainer *container);
-void MSK_API msk_message_note_on(MskWorld *world, short note, short velocity);
-void MSK_API msk_message_note_off(MskWorld *world, short note, short velocity);
+void MSK_API msk_message_note_on(MskWorld *world, short channel, short note, short velocity);
+void MSK_API msk_message_note_off(MskWorld *world, short channel, short note, short velocity);
 
 MskModule MSK_API *msk_factory_create_module(const char *name, MskContainer *parent);
 MskContainer MSK_API *msk_factory_create_container(const char *name, MskContainer *parent);

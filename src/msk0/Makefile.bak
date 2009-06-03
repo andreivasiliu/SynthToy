@@ -4,7 +4,7 @@ L_FLAGS = `pkg-config --libs glib-2.0` -lm ${LFLAGS}
 OBJ_TEST = msktestzone.o
 OBJECTS  = mskmodule.o mskworld.o mskcontainer.o mskconstant.o mskoscillator.o \
            mskaddmul.o mskinstrument.o mskfactory.o msksaveload.o mskadapter.o \
-           mskdelay.o
+           mskdelay.o mskfilter.o
 
 MODEXT = .dll
 EXEEXT = .exe

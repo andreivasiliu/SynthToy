@@ -4,6 +4,12 @@
 #include "mskinternal.h"
 
 
+/**********************************************************************
+ * Module: Delay
+ * Ports: in -> out
+ * Properties: delay
+ **********************************************************************/
+
 typedef struct _MskDelayState
 {
     float *buffer;

@@ -63,7 +63,7 @@ static void msk_add_process(MskModule *self, int start, int frames, void *state)
 
 static void msk_add_addport(MskModule *self)
 {
-    MskPort *port = msk_add_input_port(self, "in#", MSK_AUDIO_DATA, 1.0f);
+    MskPort *port = msk_add_input_port(self, "in#", MSK_AUDIO_DATA, 0.0f);
     msk_add_port_to_buffer_group(port, 0);
 }
 

@@ -95,6 +95,8 @@ GtkWidget *create_menu()
     add_module_to_menu(create_menu, "ADSR Envelope", "ADSR");
     add_module_to_menu(create_menu, "Parameter", "parameter");
     add_module_to_menu(create_menu, "Delay", "delay");
+    add_module_to_menu(create_menu, "FIR Filter", "FIR filter");
+    add_module_to_menu(create_menu, "IIR Filter", "IIR filter");
 
 
     item = gtk_menu_item_new_with_label("Create macro");

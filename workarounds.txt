@@ -5,4 +5,4 @@ This is a list of lazy coding workarounds that MUST be rewritten:
  - the instrument implementation is crude... iron it out
  - the MIDI modules need to find a better way to get their instrument
  - the oscillator interpolation was broken by an 'upgrade'.
- - dynamic ports not finished
+ - melded ports cause trouble.

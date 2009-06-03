@@ -38,6 +38,7 @@ MskContainer *gmsk_load_world_from_file(const gchar *filename, GError **error)
     msk_world_prepare(world);
 
     gmsk_unlock_mutex();
+    gmsk_invalidate();
 
     return world;
 }

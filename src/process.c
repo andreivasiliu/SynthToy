@@ -98,7 +98,7 @@ void uint8_to_binary(int from, char *to)
     to[i] = 0;
 }
 
-#define MIDI_CHANNEL(byte)         (byte & 0xF)
+#define MIDI_CHANNEL(byte)         ((byte & 0xF) + 1)
 #define MIDI_TYPE(byte)            ((byte >> 4) & 0xF)
 #define MIDI_14BIT(lbits, mbits)   (((int)mbits << 7) | ((int)lbits))
 
@@ -125,7 +125,8 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
                 MIDI_CHANNEL(message[0]), message[1], message[2]);
 
         virkb_noteoff(message[1]);
-        msk_message_note_off(aural_root->module->world, message[1], message[2]);
+        msk_message_note_off(aural_root->module->world, MIDI_CHANNEL(message[0]),
+                message[1], message[2]);
 
         break;
     case 0x9:  /* 1001 */
@@ -137,7 +138,8 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
         else
             virkb_noteoff(message[1]);
 
-        msk_message_note_on(aural_root->module->world, message[1], message[2]);
+        msk_message_note_on(aural_root->module->world, MIDI_CHANNEL(message[0]),
+                message[1], message[2]);
 
         /*
         if ( message[2] == 0 && message[1] != last_note )
@@ -161,6 +163,11 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
             msk_module_set_float_property(v->lfo_freq, "value",
                                           ((float) message[2] / 127) * 10);
         */
+
+        break;
+    case 0xC:  /* 1100 */
+        g_print("Ch%d: ProgramChange, program %d.\n",
+                MIDI_CHANNEL(message[0]), message[1]);
 
         break;
     case 0xD:

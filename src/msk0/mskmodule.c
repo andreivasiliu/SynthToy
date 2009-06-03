@@ -37,6 +37,10 @@ void msk_module_destroy(MskModule *mod)
 {
     GList *item;
 
+    /* Clear its state, if any. */
+    if ( mod->state )
+        msk_module_deactivate(mod);
+
     if ( mod->destroy_callback )
         mod->destroy_callback(mod);
 
@@ -48,7 +52,7 @@ void msk_module_destroy(MskModule *mod)
         if ( input_port->input.connection )
             msk_disconnect_input_port(input_port);
     }
-    for ( item = mod->in_ports; item; item = item->next )
+    for ( item = mod->out_ports; item; item = item->next )
     {
         MskPort *output_port = item->data;
 
@@ -61,10 +65,6 @@ void msk_module_destroy(MskModule *mod)
         mod->parent->module_list = g_list_remove(mod->parent->module_list, mod);
         msk_container_sort(mod->parent);
     }
-
-    /* Clear its state, if any. */
-    if ( mod->state )
-        msk_module_deactivate(mod);
 
     if ( mod->global_state )
         g_free(mod->global_state);
@@ -310,6 +310,44 @@ void msk_add_port_to_buffer_group(MskPort *port, int group)
     add_port_to_group(port);
 }
 
+/* This should be called whenever ports or port connections are changed on a
+ * module. */
+void msk_module_update(MskModule *mod)
+{
+    GList *item, *item2;
+
+    update_buffer_groups(mod);
+
+    if ( mod->container )
+    {
+        GList *item;
+
+        for ( item = mod->container->input_modules; item; item = item->next )
+        {
+            MskModule *input_module = item->data;
+
+            msk_module_update(input_module);
+        }
+    }
+
+    /* If some of the output ports are hardlinked, then make sure all
+     * hardlinked buffers are updated too. */
+    for ( item = mod->out_ports; item; item = item->next )
+    {
+        MskPort *out_port = item->data;
+
+        if ( !out_port->output.hardlink )
+            continue;
+
+        for ( item2 = out_port->output.connections; item2; item2 = item2->next )
+        {
+            MskPort *in_port = item2->data;
+
+            msk_module_update(in_port->owner);
+        }
+    }
+}
+
 
 void msk_module_dynamic_port_add(MskModule *module)
 {
@@ -373,7 +411,14 @@ static void *create_port_buffer(guint type, MskWorld *world)
     void *buffer;
 
     if ( type == MSK_AUDIO_DATA )
+    {
+        int i;
+
         buffer = g_new(float, world->block_size);
+
+        for ( i = 0; i < world->block_size; i++ )
+            ((float*)buffer)[i] = 1.0 / (float)i;  // for debugging purposes
+    }
     else if ( type == MSK_CONTROL_DATA )
         buffer = g_new(float, 1);
     else
@@ -528,7 +573,9 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
     /* If this fails, then it's a bug in the code. The 'can_connect_ports'
      * function should catch everything. */
     msk_container_sort(left->parent);
-    update_buffer_groups(right_port->owner);
+
+    /* Update the affected module. */
+    msk_module_update(right_port->owner);
 }
 
 void msk_meld_ports(MskPort *inport, MskPort *outport)

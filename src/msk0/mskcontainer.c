@@ -444,6 +444,13 @@ gboolean msk_container_sort(MskContainer *container)
 }
 
 
+static void msk_input_destroy(MskModule *self)
+{
+    MskContainer *parent = self->parent;
+
+    parent->input_modules = g_list_remove(parent->input_modules, self);
+}
+
 MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint type)
 {
     MskModule *mod;
@@ -454,6 +461,9 @@ MskModule *msk_input_create_with_name(MskContainer *parent, gchar *name, guint t
 
     exterior_port = msk_add_input_port(parent->module, name, type, 0.0f);  // ?
     interior_port = msk_add_output_port(mod, exterior_port->name, type);
+
+    parent->input_modules = g_list_append(parent->input_modules, mod);
+    msk_add_destroy_callback(mod, msk_input_destroy);
 
     msk_meld_ports(exterior_port, interior_port);
 
@@ -535,7 +545,6 @@ void msk_instrument_voices_changed(MskProperty *property, void *buffer)
         *value = 1;
 
     // TODO: deactivate only if it was activated.
-    msk_container_deactivate(container);
     container->voices = *value;
     g_free(instrument->voice_active);
     g_free(instrument->voice_note);
@@ -543,11 +552,33 @@ void msk_instrument_voices_changed(MskProperty *property, void *buffer)
     instrument->voice_active = g_new0(char, container->voices);
     instrument->voice_note = g_new0(short, container->voices);
     instrument->voice_velocity = g_new0(short, container->voices);
-    msk_container_activate(container);
+}
+
+
+void msk_instrument_channel_changed(MskProperty *property, void *buffer)
+{
+    MskInstrument *instrument = property->owner->container->instrument;
+    int *value = (int *)buffer;
+
+    if ( *value < 0 || *value > 16 )
+        *value = 0;
+
+    instrument->channel = *value;
+}
+
+
+static void msk_instrument_destroy(MskModule *self)
+{
+    MskWorld *world = self->world;
+    MskInstrument *instrument = self->container->instrument;
+
+    world->instruments = g_list_remove(world->instruments, instrument);
+
+    // TODO: destroy it for good.
 }
 
 // This is almost identical with msk_container_create... and that's a
-// very big problem.
+// problem.
 MskContainer *msk_instrument_create(MskContainer *parent)
 {
     MskWorld *world;
@@ -578,6 +609,11 @@ MskContainer *msk_instrument_create(MskContainer *parent)
     msk_add_integer_property(module, "type", MSK_INSTRUMENT_CONTAINER);
     property = msk_add_integer_property(module, "voices", container->voices);
     msk_property_set_write_callback(property, msk_instrument_voices_changed);
+    msk_property_set_flags(property, MSK_PROPERTY_DEACTIVATES_MODULE);
+    property = msk_add_integer_property(module, "channel", instrument->channel);
+    msk_property_set_write_callback(property, msk_instrument_channel_changed);
+
+    msk_add_destroy_callback(module, msk_instrument_destroy);
 
     return container;
 }

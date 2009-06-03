@@ -497,8 +497,8 @@ GMPort *get_gmport_at(GraphicalModule *gmod, int x, int y, int *type)
     {
         GMPort *gmport = &gmod->in_ports[i];
 
-        if ( x > gmport->pos_x - 4 && x < gmport->pos_x + 4 &&
-             y > gmport->pos_y - 4 && y < gmport->pos_y + 4 )
+        if ( x > gmport->pos_x - 8 && x < gmport->pos_x + 16 &&
+             y > gmport->pos_y - 8 && y < gmport->pos_y + 8 )
         {
             if ( type )
                 *type = 1;
@@ -511,8 +511,8 @@ GMPort *get_gmport_at(GraphicalModule *gmod, int x, int y, int *type)
     {
         GMPort *gmport = &gmod->out_ports[i];
 
-        if ( x > gmport->pos_x - 4 && x < gmport->pos_x + 4 &&
-             y > gmport->pos_y - 4 && y < gmport->pos_y + 4 )
+        if ( x > gmport->pos_x - 16 && x < gmport->pos_x + 8 &&
+             y > gmport->pos_y - 8 && y < gmport->pos_y + 8 )
         {
             if ( type )
                 *type = 2;
@@ -642,30 +642,33 @@ gboolean gmsk_mouse_motion_event(int x, int y, int modifiers)
         dragging_port_to_y = y;
 
         /* Dragging over a module? Auto-extend it. */
-        if ( gmod && gmod != dragged_port->owner )
+        if ( dragged_port_is_output )
         {
-            gmsk_lock_mutex();
-
-            if ( gmod != auto_extended_module )
+            if ( gmod && gmod != dragged_port->owner )
             {
-                msk_module_add_dynamic_ports(gmod->mod);
-                redraw_module(gmod->mod);
-                // TODO: this is because in this quick-and-dirty implementation
-                // the gmod is replaced when redrawn.
-                auto_extended_module = find_gmod(gmod->mod);
+                gmsk_lock_mutex();
+
+                if ( gmod != auto_extended_module )
+                {
+                    msk_module_add_dynamic_ports(gmod->mod);
+                    redraw_module(gmod->mod);
+                    // TODO: this is because in this quick-and-dirty implementation
+                    // the gmod is replaced when redrawn.
+                    auto_extended_module = find_gmod(gmod->mod);
+                }
+
+                gmsk_unlock_mutex();
             }
+            else if ( auto_extended_module )
+            {
+                gmsk_lock_mutex();
 
-            gmsk_unlock_mutex();
-        }
-        else if ( auto_extended_module )
-        {
-            gmsk_lock_mutex();
+                msk_module_remove_unused_dynamic_ports(auto_extended_module->mod);
+                redraw_module(auto_extended_module->mod);
+                auto_extended_module = NULL;
 
-            msk_module_remove_unused_dynamic_ports(auto_extended_module->mod);
-            redraw_module(auto_extended_module->mod);
-            auto_extended_module = NULL;
-
-            gmsk_unlock_mutex();
+                gmsk_unlock_mutex();
+            }
         }
 
         gmsk_invalidate();
