@@ -36,7 +36,7 @@ GTimer *timer;
 
 void aural_init()
 {
-    MskModule *output;
+    MskModule *output1, *output2;
 
     int i;
 
@@ -47,7 +47,8 @@ void aural_init()
         note_frequencies[i] = note_frequencies[i+1] / 1.0594630943f;
 
     aural_root = msk_world_create(44100, 256);
-    output = msk_output_create_with_name(aural_root, "audio1", MSK_AUDIO_DATA);
+    output1 = msk_output_create_with_name(aural_root, "audio1", MSK_AUDIO_DATA);
+    output2 = msk_output_create_with_name(aural_root, "audio2", MSK_AUDIO_DATA);
 
     msk_world_prepare(aural_root);
 
@@ -55,14 +56,16 @@ void aural_init()
     gmsk_set_invalidate_callback(&on_editor_invalidated, NULL);
     gmsk_set_select_module_callback(&on_module_selected, NULL);
 
-    gmsk_draw_module_at(output, 540, 90);
+    gmsk_draw_module_at(output1, 540, 70);
+    gmsk_draw_module_at(output2, 540, 110);
 
     timer = g_timer_new();
 }
 
 
 
-void process_func(float *in, float *out, int nframes, int sample_rate, void *data)
+void process_func(float *in, float *out_left, float *out_right, int nframes,
+        int sample_rate, void *data)
 {
     float *buffer;
     int i;
@@ -77,9 +80,11 @@ void process_func(float *in, float *out, int nframes, int sample_rate, void *dat
 
         processing_time += g_timer_elapsed(timer, NULL);
 
-        buffer = msk_module_get_output_buffer(aural_root->module, "audio1");
+        buffer = msk_module_get_output_buffer(aural_root->module, "audio2");
+        memcpy(out_right + i, buffer, 256 * sizeof(float));
 
-        memcpy(out + i, buffer, 256 * sizeof(float));
+        buffer = msk_module_get_output_buffer(aural_root->module, "audio1");
+        memcpy(out_left + i, buffer, 256 * sizeof(float));
 
         if ( i < 512 )
             memcpy(array + i, buffer, 256 * sizeof(float));
