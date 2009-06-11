@@ -96,6 +96,8 @@ struct _MskInstrument
     char *voice_active;
     short *voice_note;
     short *voice_velocity;
+    short channel_pressure;
+    int pitch_bend;
 
     int last_voice;
 
@@ -169,6 +171,7 @@ struct _MskModule
      * separate modules that break the loop. */
     gboolean can_split;
     gboolean is_split;
+    gboolean split_prepared;
     int delay_limiter;
     MskProcessCallback process_input;
     MskProcessCallback process_output;
@@ -251,11 +254,15 @@ MskModule MSK_API *msk_mul_create(MskContainer *parent);
 MskModule MSK_API *msk_voiceactive_create(MskContainer *parent);
 MskModule MSK_API *msk_voicepitch_create(MskContainer *parent);
 MskModule MSK_API *msk_voicevelocity_create(MskContainer *parent);
+MskModule MSK_API *msk_pitchbend_create(MskContainer *parent);
+MskModule MSK_API *msk_channelpressure_create(MskContainer *parent);
 MskModule MSK_API *msk_parameter_create(MskContainer *parent);
 MskModule MSK_API *msk_adsr_create(MskContainer *parent);
 MskModule MSK_API *msk_delay_create(MskContainer *parent);
 MskModule MSK_API *msk_firfilter_create(MskContainer *parent);
 MskModule MSK_API *msk_iirfilter_create(MskContainer *parent);
+MskModule MSK_API *msk_distort_create(MskContainer *parent);
+
 
 /* MSK World. */
 MskContainer MSK_API *msk_world_create(gulong sample_rate, gsize block_size);
@@ -264,6 +271,9 @@ void MSK_API msk_world_prepare(MskContainer *container);
 void MSK_API msk_world_run(MskContainer *container);
 void MSK_API msk_message_note_on(MskWorld *world, short channel, short note, short velocity);
 void MSK_API msk_message_note_off(MskWorld *world, short channel, short note, short velocity);
+void MSK_API msk_message_pitch_bend(MskWorld *world, short channel, int value);
+void MSK_API msk_message_channel_pressure(MskWorld *world, short channel, short value);
+
 
 MskModule MSK_API *msk_factory_create_module(const char *name, MskContainer *parent);
 MskContainer MSK_API *msk_factory_create_container(const char *name, MskContainer *parent);

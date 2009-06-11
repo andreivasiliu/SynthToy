@@ -102,6 +102,10 @@ void msk_module_activate(MskModule *mod)
 
         g_ptr_array_add(mod->state, state);
     }
+
+    if ( mod->container )
+        msk_container_activate(mod->container);
+
 }
 
 
@@ -111,6 +115,9 @@ void msk_module_deactivate(MskModule *mod)
     int v;
 
     g_assert(mod->state != NULL);
+
+    if ( mod->container )
+        msk_container_deactivate(mod->container);
 
     for ( v = 0; v < voices; v++ )
     {
@@ -349,21 +356,6 @@ void msk_module_update(MskModule *mod)
 }
 
 
-void msk_module_dynamic_port_add(MskModule *module)
-{
-    if ( module->dynamic_port_add )
-        module->dynamic_port_add(module);
-}
-
-
-void msk_module_dynamic_port_remove(MskModule *module)
-{
-    if ( module->dynamic_port_remove )
-        module->dynamic_port_remove(module);
-}
-
-
-
 MskPort *msk_module_get_input_port(MskModule *mod, gchar *port_name)
 {
     GList *port;
@@ -444,7 +436,7 @@ void msk_disconnect_input_port(MskPort *in_port)
         in_port->buffer = create_port_buffer(in_port->port_type, in_port->owner->world);
 
     msk_container_sort(in_port->owner->parent);
-    update_buffer_groups(in_port->owner);
+    msk_module_update(in_port->owner);
 }
 
 
@@ -714,7 +706,7 @@ void msk_remove_input_port(MskModule *mod)
         out_port->output.connections = g_list_remove(out_port->output.connections, in_port);
     }
 
-    update_buffer_groups(mod);
+    msk_module_update(mod);
     msk_container_sort(mod->parent);
 
     /* Free. */

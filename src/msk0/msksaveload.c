@@ -161,6 +161,13 @@ MskContainer *msk_load_world_from_file(const gchar *filename,
             else
             {
                 int j;
+                int dynamic_port_groups = 0;
+
+                dynamic_port_groups = g_key_file_get_integer(keyfile, id,
+                        "dynamic-port-groups", NULL);
+
+                while ( dynamic_port_groups-- > 0 )
+                    msk_module_add_dynamic_ports(modules[i]);
 
                 for ( j = 0; ; j++ )
                 {
@@ -356,6 +363,10 @@ static void save_module(GKeyFile *keyfile, MskModule *module, int *connection_id
 
             g_free(value);
         }
+
+        if ( module->dynamic_group_count )
+            g_key_file_set_integer(keyfile, id, "dynamic-port-groups",
+                    module->dynamic_group_count);
 
         modulesave_callback(keyfile, module, id);
     }

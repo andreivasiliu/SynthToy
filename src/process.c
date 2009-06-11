@@ -130,8 +130,10 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
                 MIDI_CHANNEL(message[0]), message[1], message[2]);
 
         virkb_noteoff(message[1]);
+        gmsk_lock_mutex();
         msk_message_note_off(aural_root->module->world, MIDI_CHANNEL(message[0]),
                 message[1], message[2]);
+        gmsk_unlock_mutex();
 
         break;
     case 0x9:  /* 1001 */
@@ -143,20 +145,10 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
         else
             virkb_noteoff(message[1]);
 
+        gmsk_lock_mutex();
         msk_message_note_on(aural_root->module->world, MIDI_CHANNEL(message[0]),
                 message[1], message[2]);
-
-        /*
-        if ( message[2] == 0 && message[1] != last_note )
-            break;
-
-        msk_module_set_float_property(v->osc_freq, "value", message[1]);
-        msk_module_set_float_property(v->amp, "mul", (float) message[2] / 127);
-        last_note = message[1];
-
-        if ( message[2] )
-            g_print("Frequency: %f.\n", note_frequencies[message[1]]);
-        */
+        gmsk_unlock_mutex();
 
         break;
     case 0xB:  /* 1011 */
@@ -178,18 +170,21 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
     case 0xD:
         g_print("Ch%d: ChannelPressure, value %d.\n",
                 MIDI_CHANNEL(message[0]), message[1]);
-        /*
-        msk_module_set_float_property(v->amp, "mul", 0.5 + (float) message[1] / 127 / 2);
-        */
+
+        gmsk_lock_mutex();
+        msk_message_channel_pressure(aural_root->module->world,
+                MIDI_CHANNEL(message[0]), message[1]);
+        gmsk_unlock_mutex();
+
         break;
     case 0xE:
         g_print("Ch%d: PitchWheelChange, value %d.\n",
                 MIDI_CHANNEL(message[0]), MIDI_14BIT(message[1], message[2]));
 
-        /*
-        msk_module_set_float_property(v->freq_add, "add",
-                                      (float) MIDI_14BIT(message[1], message[2]) / 8192 - 1);
-        */
+        gmsk_lock_mutex();
+        msk_message_pitch_bend(aural_root->module->world, MIDI_CHANNEL(message[0]),
+                MIDI_14BIT(message[1], message[2]));
+        gmsk_unlock_mutex();
 
         break;
     default:

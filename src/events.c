@@ -35,6 +35,20 @@ static const guint alternate_compkey_notes[] =
     0
 };
 
+static const struct
+{
+    guint key;
+    char *modulename;
+} module_shortcuts[] =
+{
+    { GDK_A, "add" },
+    { GDK_M, "mul" },
+    { GDK_C, "constant" },
+    { GDK_I, "input" },
+    { GDK_O, "output" },
+    { GDK_D, "delay" },
+    { 0, NULL }
+};
 
 G_MODULE_EXPORT void on_drawingarea3_button_press_event(GtkObject *object,
                                                         GdkEventButton *event)
@@ -80,10 +94,18 @@ G_MODULE_EXPORT gboolean on_drawingarea3_key_event(GtkObject *object,
 G_MODULE_EXPORT gboolean on_drawingarea2_key_event(GtkObject *object,
                                                    GdkEventKey *event)
 {
-    if ( event->keyval == GDK_Delete )
+    if ( event->keyval == GDK_Delete && event->type == GDK_KEY_PRESS )
     {
         gmsk_delete_selected();
         return TRUE;
+    }
+    else if ( event->type == GDK_KEY_PRESS )
+    {
+        int i;
+
+        for ( i = 0; module_shortcuts[i].modulename; i++ )
+            if ( event->keyval == module_shortcuts[i].key )
+                gmsk_create_module(module_shortcuts[i].modulename);
     }
     else
     {
@@ -199,6 +221,7 @@ G_MODULE_EXPORT void on_menuitem_open_activate(GtkMenuItem *menuitem,
                                                gpointer     user_data)
 {
     GtkWidget *dialog;
+    GtkFileFilter *filter;
 
     dialog = gtk_file_chooser_dialog_new("Open File",
                                          GTK_WINDOW(main_window),
@@ -207,13 +230,22 @@ G_MODULE_EXPORT void on_menuitem_open_activate(GtkMenuItem *menuitem,
                                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
                                          NULL);
 
+    filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, ".msk files");
+    gtk_file_filter_add_pattern(filter, "*.msk");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+    filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, "All files");
+    gtk_file_filter_add_pattern(filter, "*");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
     if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_ACCEPT)
     {
         MskContainer *new_world;
         char *filename;
         GError *error = NULL;
 
-        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (dialog));
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
         new_world = gmsk_load_world_from_file(filename, &error);
 
         if ( error )

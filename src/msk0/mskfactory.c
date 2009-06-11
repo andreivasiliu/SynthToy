@@ -23,11 +23,15 @@ const struct
     { "voiceactive", &msk_voiceactive_create },
     { "voicepitch", &msk_voicepitch_create },
     { "voicevelocity", &msk_voicevelocity_create },
+    { "pitchbend", &msk_pitchbend_create },
+    { "channelpressure", &msk_channelpressure_create },
     { "parameter", &msk_parameter_create },
     { "ADSR", &msk_adsr_create },
     { "delay", &msk_delay_create },
     { "FIR filter", &msk_firfilter_create },
     { "IIR filter", &msk_iirfilter_create },
+    { "distort", &msk_distort_create },
+
     { NULL, NULL }
 };
 

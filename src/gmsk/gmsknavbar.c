@@ -45,7 +45,7 @@ static void get_pango_text_size(char *string, int *width, int *height)
 
 
 /* Create a layout to be painted later. */
-static PangoLayout *create_pango_layout(cairo_t *cr, char *string,
+PangoLayout *create_pango_layout(cairo_t *cr, char *string,
                           int *width, int *height)
 {
     PangoLayout *layout;
@@ -63,13 +63,14 @@ static PangoLayout *create_pango_layout(cairo_t *cr, char *string,
 
 
 /* Paint and destroy a layout. */
-static void paint_pango_layout(cairo_t *cr, PangoLayout *layout)
+void paint_pango_layout(cairo_t *cr, PangoLayout *layout)
 {
+    pango_cairo_update_layout(cr, layout);
     pango_cairo_show_layout(cr, layout);
     g_object_unref(layout);
 }
 
-static void paint_pango_text(cairo_t *cr, char *string, int *width, int *height)
+void paint_pango_text(cairo_t *cr, char *string, int *width, int *height)
 {
     PangoLayout *layout;
 

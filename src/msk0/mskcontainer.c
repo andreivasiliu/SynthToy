@@ -26,9 +26,6 @@ void msk_container_activate(MskContainer *self)
         MskModule *mod = item->data;
 
         msk_module_activate(mod);
-
-        if ( mod->container )
-            msk_container_activate(mod->container);
     }
 }
 
@@ -42,9 +39,6 @@ void msk_container_deactivate(MskContainer *self)
         MskModule *mod = item->data;
 
         msk_module_deactivate(mod);
-
-        if ( mod->container )
-            msk_container_deactivate(mod->container);
     }
 }
 
@@ -165,10 +159,7 @@ static void msk_container_voices_changed(MskProperty *property, void *buffer)
     if ( *value < 0 )
         *value = 1;
 
-    // TODO: deactivate only if it was activated.
-    msk_container_deactivate(container);
     container->voices = *value;
-    msk_container_activate(container);
 }
 
 MskContainer *msk_container_create(MskContainer *parent)
@@ -188,6 +179,7 @@ MskContainer *msk_container_create(MskContainer *parent)
     msk_add_integer_property(module, "type", MSK_SIMPLE_CONTAINER);
     property = msk_add_integer_property(module, "voices", container->voices);
     msk_property_set_write_callback(property, msk_container_voices_changed);
+    msk_property_set_flags(property, MSK_PROPERTY_DEACTIVATES_MODULE);
 
     return container;
 }
@@ -340,9 +332,13 @@ static void add_module_as_task(MskModule *mod, GList **process_order)
 
         if ( linked_port->owner->is_split )
         {
-            task = add_processor(MSK_HALFPROCESSOR, process_order);
-            task->halfprocessor.module = linked_port->owner;
-            task->halfprocessor.input = FALSE;
+            if ( !linked_port->owner->split_prepared )
+            {
+                task = add_processor(MSK_HALFPROCESSOR, process_order);
+                task->halfprocessor.module = linked_port->owner;
+                task->halfprocessor.input = FALSE;
+                linked_port->owner->split_prepared = TRUE;
+            }
         }
         else if ( !linked_port->owner->prepared )
             add_module_as_task(linked_port->owner, process_order);
@@ -412,7 +408,10 @@ gboolean msk_container_sort(MskContainer *container)
         g_error("Loop in container.");
 
     for ( lmod = container->module_list; lmod; lmod = lmod->next )
+    {
         ((MskModule *)lmod->data)->prepared = FALSE;
+        ((MskModule *)lmod->data)->split_prepared = FALSE;
+    }
 
     for ( lmod = container->module_list; lmod; lmod = lmod->next )
     {
@@ -544,7 +543,6 @@ void msk_instrument_voices_changed(MskProperty *property, void *buffer)
     if ( *value < 0 )
         *value = 1;
 
-    // TODO: deactivate only if it was activated.
     container->voices = *value;
     g_free(instrument->voice_active);
     g_free(instrument->voice_note);

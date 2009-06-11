@@ -63,7 +63,7 @@ MskModule *gmsk_create_module(char *name)
     msk_container_activate(root_container->module->world->root);
     gmsk_unlock_mutex();
 
-    draw_module(module, 10, 10);
+    draw_module(module, -1, -1);
 
     /* These modules also create new ports on the parent container. */
     if ( !strcmp(module->name, "input") || !strcmp(module->name, "output") )
@@ -89,7 +89,7 @@ MskContainer *gmsk_create_container(char *name)
     msk_container_activate(root_container->module->world->root);
     gmsk_unlock_mutex();
 
-    draw_module(container->module, 20, 20);
+    draw_module(container->module, -1, -1);
 
     gmsk_invalidate();
     return container;

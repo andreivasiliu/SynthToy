@@ -41,6 +41,14 @@ static void add_module_to_menu(GtkWidget *menu, char *display_name, char *name)
                        name);
 }
 
+
+static void add_separator_to_menu(GtkWidget *menu)
+{
+    GtkWidget *item = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+}
+
+
 static void add_container_to_menu(GtkWidget *menu, char *display_name, char *name)
 {
     GtkWidget *item;
@@ -81,20 +89,26 @@ GtkWidget *create_menu()
     create_menu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), create_menu);
 
+    add_module_to_menu(create_menu, "Add", "add");
+    add_module_to_menu(create_menu, "Multiply", "mul");
+    add_separator_to_menu(create_menu);
     add_module_to_menu(create_menu, "Oscillator", "oscillator");
     add_module_to_menu(create_menu, "Pitch to Frequency", "pitch to frequency");
     add_module_to_menu(create_menu, "Constant", "constant");
-    add_module_to_menu(create_menu, "Add", "add");
-    add_module_to_menu(create_menu, "Multiply", "mul");
     add_module_to_menu(create_menu, "Input", "input");
     add_module_to_menu(create_menu, "Output", "output");
+    add_separator_to_menu(create_menu);
     add_module_to_menu(create_menu, "Voice Number", "voicenumber");
     add_module_to_menu(create_menu, "Voice Active", "voiceactive");
     add_module_to_menu(create_menu, "Voice Pitch", "voicepitch");
     add_module_to_menu(create_menu, "Voice Velocity", "voicevelocity");
-    add_module_to_menu(create_menu, "ADSR Envelope", "ADSR");
+    add_module_to_menu(create_menu, "Pitch Bend", "pitchbend");
+    add_module_to_menu(create_menu, "Channel Pressure", "channelpressure");
+    add_separator_to_menu(create_menu);
     add_module_to_menu(create_menu, "Parameter", "parameter");
+    add_module_to_menu(create_menu, "ADSR Envelope", "ADSR");
     add_module_to_menu(create_menu, "Delay", "delay");
+    add_module_to_menu(create_menu, "Distort", "distort");
     add_module_to_menu(create_menu, "FIR Filter", "FIR filter");
     add_module_to_menu(create_menu, "IIR Filter", "IIR filter");
 

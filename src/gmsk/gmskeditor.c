@@ -1,9 +1,7 @@
 #include <glib.h>
 #include <cairo.h>
-#define PANGO_ENABLE_BACKEND 1
 #include <pango/pango.h>
 #include <pango/pangocairo.h>
-#undef PANGO_ENABLE_BACKEND
 
 #include "msk0/msk0.h"
 #include "gmsk.h"
@@ -29,15 +27,23 @@ int dragged_port_is_output;
 int dragging_port_to_x;
 int dragging_port_to_y;
 
+int current_mouse_x;
+int current_mouse_y;
+
+
 GraphicalModule *auto_extended_module;
 GraphicalModule *selected_module;
 GMPort *selected_connection;
+
+extern PangoLayout *create_pango_layout(cairo_t *cr, char *string,
+                          int *width, int *height);
+extern void paint_pango_layout(cairo_t *cr, PangoLayout *layout);
+
 
 void draw_module(MskModule *mod, long x, long y)
 {
     GraphicalModule *gmod;
     PangoContext *context;
-    PangoFontMap *font_map;
     PangoLayout *title, *port;
     PangoFontDescription *font_desc;
     cairo_surface_t *surface;
@@ -50,6 +56,12 @@ void draw_module(MskModule *mod, long x, long y)
 
     gmod = g_new0(GraphicalModule, 1);
 
+    surface = cairo_image_surface_create_for_data(NULL,
+                                                  CAIRO_FORMAT_ARGB32,
+                                                  0, 0, 0);
+
+    cr = cairo_create(surface);
+
     /* Before we start drawing, we need to determine the minimum size of the
      * surface. */
 
@@ -59,17 +71,7 @@ void draw_module(MskModule *mod, long x, long y)
 
     /* The title/name. */
 
-    font_map = pango_cairo_font_map_get_default();
-    context = pango_context_new();
-    pango_context_set_font_map(context, font_map);
-
-    title = pango_layout_new(context);
-    font_desc = pango_font_description_from_string("Sans 8");
-    pango_layout_set_font_description(title, font_desc);
-
-    pango_layout_set_text(title, mod->name, -1);
-
-    pango_layout_get_pixel_size(title, &width, &height);
+    title = create_pango_layout(cr, mod->name, &width, &height);
 
     surface_width += width+1 + 5*2; /* 5 == padding */
     surface_height += height;
@@ -99,10 +101,7 @@ void draw_module(MskModule *mod, long x, long y)
         {
             mport = iter_left->data;
 
-            port = pango_layout_new(context);
-            pango_layout_set_font_description(port, font_desc);
-            pango_layout_set_text(port, mport->name, -1);
-            pango_layout_get_pixel_size(port, &left_width, &left_height);
+            port = create_pango_layout(cr, mport->name, &left_width, &left_height);
             left_width += 8;
             left_height = MAX(left_height, 7);
 
@@ -118,10 +117,7 @@ void draw_module(MskModule *mod, long x, long y)
         {
             mport = iter_right->data;
 
-            port = pango_layout_new(context);
-            pango_layout_set_font_description(port, font_desc);
-            pango_layout_set_text(port, mport->name, -1);
-            pango_layout_get_pixel_size(port, &right_width, &right_height);
+            port = create_pango_layout(cr, mport->name, &right_width, &right_height);
             right_width += 8;
             right_height = MAX(right_height, 7);
 
@@ -141,10 +137,11 @@ void draw_module(MskModule *mod, long x, long y)
 //    /* Let's say, space for some ports */
 //    surface_height += height*2;
 
-    pango_font_description_free(font_desc);
-
     gmod->width = surface_width;
     gmod->height = surface_height;
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
 
     /* Now that we have the required size, create a surface and start drawing
      * on it. */
@@ -180,6 +177,7 @@ void draw_module(MskModule *mod, long x, long y)
     /* Paint the title */
     cairo_set_source_rgb(cr, 1, 1, 1);
 
+    pango_cairo_update_layout(cr, title);
     pango_layout_get_pixel_size(title, &width, &height);
     cairo_move_to(cr, (surface_width - width) / 2, 4);
     pango_cairo_show_layout(cr, title);
@@ -208,6 +206,7 @@ void draw_module(MskModule *mod, long x, long y)
         if ( iter_left )
         {
             port = iter_left->data;
+            pango_cairo_update_layout(cr, port);
             pango_layout_get_pixel_size(port, &left_width, &left_height);
 
             /* Paint a little box. */
@@ -233,6 +232,7 @@ void draw_module(MskModule *mod, long x, long y)
         if ( iter_right )
         {
             port = iter_right->data;
+            pango_cairo_update_layout(cr, port);
             pango_layout_get_pixel_size(port, &right_width, &right_height);
 
             /* Paint a little box. */
@@ -260,6 +260,12 @@ void draw_module(MskModule *mod, long x, long y)
     }
 
     cairo_destroy(cr);
+
+    if ( x == -1 || y == -1 )
+    {
+        x = current_mouse_x - gmod->width / 2;
+        y = current_mouse_y - gmod->height / 2;
+    }
 
     gmod->surface = surface;
     gmod->mod = mod;
@@ -601,6 +607,9 @@ void gmsk_invalidate()
 
 gboolean gmsk_mouse_motion_event(int x, int y, int modifiers)
 {
+    current_mouse_x = x;
+    current_mouse_y = y;
+
     if ( dragged_module )
     {
         long new_x, new_y;
@@ -829,8 +838,10 @@ gboolean gmsk_mouse_release_event(int x, int y, int button, int modifiers)
 
     if ( auto_extended_module )
     {
+        gmsk_lock_mutex();
         msk_module_remove_unused_dynamic_ports(auto_extended_module->mod);
         redraw_module(auto_extended_module->mod);
+        gmsk_unlock_mutex();
         auto_extended_module = NULL;
     }
 

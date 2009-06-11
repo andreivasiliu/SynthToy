@@ -90,6 +90,38 @@ void msk_message_note_off(MskWorld *world, short channel, short note, short velo
     }
 }
 
+void msk_message_pitch_bend(MskWorld *world, short channel, int value)
+{
+    GList *item;
+
+    // TODO: Same comment as on NoteOn. Channel, key range, etc.
+    for ( item = world->instruments; item; item = item->next )
+    {
+        MskInstrument *instrument = item->data;
+
+        if ( instrument->channel && channel && instrument->channel != channel )
+            continue;
+
+        instrument->pitch_bend = value - 8192;
+    }
+}
+
+void msk_message_channel_pressure(MskWorld *world, short channel, short value)
+{
+    GList *item;
+
+    // TODO: Same comment as on NoteOn. Channel, key range, etc.
+    for ( item = world->instruments; item; item = item->next )
+    {
+        MskInstrument *instrument = item->data;
+
+        if ( instrument->channel && channel && instrument->channel != channel )
+            continue;
+
+        instrument->channel_pressure = value;
+    }
+}
+
 static inline MskInstrument *get_instrument(MskContainer *parent)
 {
     MskInstrument *instrument = NULL;
@@ -170,6 +202,42 @@ MskModule *msk_voicevelocity_create(MskContainer *parent)
                             msk_voicevelocity_process);
 
     msk_add_output_port(mod, "velocity", MSK_CONTROL_DATA);
+
+    return mod;
+}
+
+static void msk_pitchbend_process(MskModule *self, int start, int frames, void *state)
+{
+    float * const out = msk_module_get_output_buffer(self, "value");
+    MskInstrument *instrument = get_instrument(self->parent);
+
+    *out = (float)instrument->pitch_bend / (8192.0 / 2.0);
+}
+
+MskModule *msk_pitchbend_create(MskContainer *parent)
+{
+    MskModule *mod;
+
+    mod = msk_module_create(parent, "pitchbend", msk_pitchbend_process);
+    msk_add_output_port(mod, "value", MSK_CONTROL_DATA);
+
+    return mod;
+}
+
+static void msk_channelpressure_process(MskModule *self, int start, int frames, void *state)
+{
+    float * const out = msk_module_get_output_buffer(self, "value");
+    MskInstrument *instrument = get_instrument(self->parent);
+
+    *out = (float)instrument->channel_pressure / 127.0;
+}
+
+MskModule *msk_channelpressure_create(MskContainer *parent)
+{
+    MskModule *mod;
+
+    mod = msk_module_create(parent, "channelpressure", msk_channelpressure_process);
+    msk_add_output_port(mod, "value", MSK_CONTROL_DATA);
 
     return mod;
 }

@@ -27,7 +27,7 @@ void gmsk_create_macro(char *name)
     msk_container_activate(root_container->module->world->root);
     gmsk_unlock_mutex();
 
-    draw_module(macro->module, 20, 20);
+    draw_module(macro->module, -1, -1);
     gmsk_invalidate();
 }
 
