@@ -99,18 +99,20 @@ G_MODULE_EXPORT gboolean on_drawingarea2_key_event(GtkObject *object,
         gmsk_delete_selected();
         return TRUE;
     }
-    else if ( event->type == GDK_KEY_PRESS )
+
+    if ( event->type == GDK_KEY_PRESS )
     {
         int i;
 
         for ( i = 0; module_shortcuts[i].modulename; i++ )
             if ( event->keyval == module_shortcuts[i].key )
+            {
                 gmsk_create_module(module_shortcuts[i].modulename);
+                return TRUE;
+            }
     }
-    else
-    {
-        on_drawingarea3_key_event(GTK_OBJECT(virkb), event);
-    }
+
+    on_drawingarea3_key_event(GTK_OBJECT(virkb), event);
 
     return FALSE;
 }

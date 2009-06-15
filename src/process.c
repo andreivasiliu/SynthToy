@@ -68,7 +68,7 @@ void process_func(float *in, float *out_left, float *out_right, int nframes,
         int sample_rate, void *data)
 {
     float *buffer;
-    int i;
+    int i, j;
 
     gmsk_lock_mutex();
 
@@ -82,9 +82,13 @@ void process_func(float *in, float *out_left, float *out_right, int nframes,
 
         buffer = msk_module_get_output_buffer(aural_root->module, "audio2");
         memcpy(out_right + i, buffer, 256 * sizeof(float));
+        for ( j = i; j < i + 256; j++ )
+            out_right[j] = 0.2 * out_right[j];
 
         buffer = msk_module_get_output_buffer(aural_root->module, "audio1");
         memcpy(out_left + i, buffer, 256 * sizeof(float));
+        for ( j = i; j < i + 256; j++ )
+            out_left[j] = 0.2 * out_left[j];
 
         if ( i < 512 )
             memcpy(array + i, buffer, 256 * sizeof(float));

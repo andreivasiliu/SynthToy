@@ -57,6 +57,7 @@ MskModule *msk_firfilter_create(MskContainer *parent)
     msk_add_state(mod, msk_firfilter_activate, msk_firfilter_deactivate,
             sizeof(MskFIRFilterState));
 
+    msk_add_input_port(mod, "in", MSK_AUDIO_DATA, 0.0f);
     port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 1.0f);
     msk_add_port_to_buffer_group(port, 0);
     port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 0.0f);
@@ -128,6 +129,7 @@ MskModule *msk_iirfilter_create(MskContainer *parent)
     msk_add_state(mod, msk_iirfilter_activate, msk_iirfilter_deactivate,
             sizeof(MskIIRFilterState));
 
+    msk_add_input_port(mod, "in", MSK_AUDIO_DATA, 0.0f);
     port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 1.0f);
     msk_add_port_to_buffer_group(port, 0);
     port = msk_add_input_port(mod, "b#", MSK_AUDIO_DATA, 0.0f);

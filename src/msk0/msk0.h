@@ -60,7 +60,11 @@ struct _MskWorld
 
 struct _MskContainer
 {
+    /* Superclass. */
     MskModule *module;
+
+    /* Subclass, if the container is also an instrument. */
+    MskInstrument *instrument;
 
     gboolean transparent;
 
@@ -74,9 +78,6 @@ struct _MskContainer
     guint voices;
     guint voice_size;
 
-    /* If the container is also an instrument. */
-    MskInstrument *instrument;
-
     /* A list of 'tasks', of type MskProcessor. */
     GList *processing_list;
 
@@ -88,6 +89,7 @@ struct _MskContainer
 // Not sure if this should even exist
 struct _MskInstrument
 {
+    /* Superclass. */
     MskContainer *container;
 
     int channel; //unused yet
@@ -135,10 +137,12 @@ struct _MskPort
 
 struct _MskModule
 {
+    /* Subclass, if the module is also a container. */
+    MskContainer *container;
+    
     gchar *name;
     MskWorld *world;
     MskContainer *parent;
-    MskContainer *container;
 
     /* Callbacks */
     MskProcessCallback process;

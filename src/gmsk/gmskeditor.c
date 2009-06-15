@@ -731,7 +731,10 @@ gboolean gmsk_mouse_press_event(int x, int y, int button, int type, int modifier
         GMPort *gmport;
         int gmport_type;
 
-        /* Did we click on the module, or on a port of the module? */
+        /* Bring it to the top and show its properties. */
+        gmsk_select_module(gmod);
+
+        /* Did we click on a port of the module? */
         gmport = get_gmport_at(gmod, x - gmod->x, y - gmod->y, &gmport_type);
         if ( gmport )
         {
@@ -742,9 +745,6 @@ gboolean gmsk_mouse_press_event(int x, int y, int button, int type, int modifier
 
             return TRUE;
         }
-
-        /* Bring it to the top and show its properties. */
-        gmsk_select_module(gmod);
 
         // Print some info about it.
         g_print("Module: '%s', at x:%d, y:%d.\n", gmod->mod->name,

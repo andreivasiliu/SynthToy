@@ -66,8 +66,8 @@ void write_audio(ModWinmmState *state, void *memory_block)
 
     for ( i = 0; i < 512; i++ )
     {
-        new_block[i*2+0] = left[i] * 0.2;
-        new_block[i*2+1] = right[i] * 0.2;
+        new_block[i*2+0] = left[i];
+        new_block[i*2+1] = right[i];
     }
 
     wave_header = calloc(1, sizeof(WAVEHDR));
