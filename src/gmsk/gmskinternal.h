@@ -34,7 +34,8 @@ struct _GraphicalModule
 /* gmskmain.c */
 extern GmskInvalidateCallback invalidate_callback;
 extern GmskSelectModuleCallback select_module_callback;
-extern gpointer invalidate_userdata, select_module_userdata;
+extern GmskErrorMessageCallback error_message_callback;
+extern gpointer invalidate_userdata, select_module_userdata, error_message_userdata;
 extern MskContainer *root_container, *current_container;
 
 
@@ -46,6 +47,7 @@ void redraw_module(MskModule *mod);
 void gmsk_invalidate();
 void gmsk_select_connection(GMPort *connection);
 void gmsk_select_module(GraphicalModule *gmod);
+void gmsk_error_message(gchar *message);
 
 
 /* gmsknavbar.c */

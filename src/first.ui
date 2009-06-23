@@ -11,7 +11,7 @@
     </columns>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="title" translatable="yes" comments="Main window title">SynthToy</property>
+    <property name="title" translatable="yes" comments="Main window title">Modular Synth</property>
     <accel-groups>
       <group name="accelgroup1"/>
     </accel-groups>
@@ -43,7 +43,7 @@
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="menuitem_save">
-                        <property name="label">gtk-save</property>
+                        <property name="label">gtk-save-as</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
@@ -88,15 +88,6 @@
                         <signal name="activate" handler="on_menuitem_properties_activate"/>
                       </object>
                     </child>
-                    <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem1">
-                        <property name="label">gtk-preferences</property>
-                        <property name="visible">True</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
-                        <property name="accel_group">accelgroup1</property>
-                      </object>
-                    </child>
                   </object>
                 </child>
               </object>
@@ -110,12 +101,13 @@
                   <object class="GtkMenu" id="menu3">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem10">
+                      <object class="GtkImageMenuItem" id="menuitem_about">
                         <property name="label">gtk-about</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="accel_group">accelgroup1</property>
+                        <signal name="activate" handler="on_menuitem_about_activate"/>
                       </object>
                     </child>
                   </object>
@@ -230,7 +222,6 @@
                     <property name="visible">True</property>
                     <child>
                       <object class="GtkVScale" id="vscale_pw">
-                        <property name="visible">True</property>
                         <property name="tooltip_text" translatable="yes">Pitch "Wheel"</property>
                         <property name="adjustment">adjustment2</property>
                         <property name="inverted">True</property>
@@ -244,7 +235,6 @@
                     </child>
                     <child>
                       <object class="GtkVScale" id="vscale_mw">
-                        <property name="visible">True</property>
                         <property name="tooltip_text" translatable="yes">Controller 1</property>
                         <property name="adjustment">adjustment1</property>
                         <property name="inverted">True</property>
@@ -254,6 +244,22 @@
                       </object>
                       <packing>
                         <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkVScale" id="vscale_octave">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="tooltip_text" translatable="yes">Octave</property>
+                        <property name="orientation">vertical</property>
+                        <property name="adjustment">adjustment3</property>
+                        <property name="inverted">True</property>
+                        <property name="fill_level">8</property>
+                        <property name="digits">0</property>
+                        <signal name="value_changed" handler="on_vscale_octave_value_changed"/>
+                      </object>
+                      <packing>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                     <child>
@@ -456,4 +462,10 @@
     <property name="page_increment">10</property>
   </object>
   <object class="GtkAccelGroup" id="accelgroup1"/>
+  <object class="GtkAdjustment" id="adjustment3">
+    <property name="lower">-5</property>
+    <property name="upper">5</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">2</property>
+  </object>
 </interface>

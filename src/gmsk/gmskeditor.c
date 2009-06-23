@@ -40,12 +40,22 @@ extern PangoLayout *create_pango_layout(cairo_t *cr, char *string,
 extern void paint_pango_layout(cairo_t *cr, PangoLayout *layout);
 
 
+void gmsk_invalidate()
+{
+    if ( invalidate_callback )
+        invalidate_callback(invalidate_userdata);
+}
+
+void gmsk_error_message(gchar *message)
+{
+    if ( error_message_callback )
+        error_message_callback(message, error_message_userdata);
+}
+
 void draw_module(MskModule *mod, long x, long y)
 {
     GraphicalModule *gmod;
-    PangoContext *context;
     PangoLayout *title, *port;
-    PangoFontDescription *font_desc;
     cairo_surface_t *surface;
     cairo_t *cr;
     int height, width, current_height;
@@ -572,14 +582,22 @@ GMPort *get_connection_at(int x, int y)
 
 void gmsk_connect_gmports(GMPort *output, GMPort *input)
 {
+    GError *error = NULL;
+
     gmsk_lock_mutex();
 
     msk_container_deactivate(root_container);
-    msk_connect_ports(output->owner->mod, output->port->name,
-                      input->owner->mod, input->port->name);
+    msk_try_connect_ports(output->owner->mod, output->port->name,
+                          input->owner->mod, input->port->name, &error);
     msk_container_activate(root_container);
 
     gmsk_unlock_mutex();
+
+    if ( error )
+    {
+        gmsk_error_message(error->message);
+        g_error_free(error);
+    }
 }
 
 MskModule *msk_get_selected_module()
@@ -597,13 +615,6 @@ MskPort *msk_get_selected_connection()
 
     return NULL;
 }
-
-void gmsk_invalidate()
-{
-    if ( invalidate_callback )
-        invalidate_callback(invalidate_userdata);
-}
-
 
 gboolean gmsk_mouse_motion_event(int x, int y, int modifiers)
 {

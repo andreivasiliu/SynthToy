@@ -508,30 +508,18 @@ static gboolean can_connect_ports(MskModule *left, gchar *left_port_name,
     return TRUE;
 }
 
-gboolean msk_can_connect_ports(MskModule *left, gchar *left_port_name,
+gboolean msk_try_connect_ports(MskModule *left, gchar *left_port_name,
                                MskModule *right, gchar *right_port_name,
                                GError **error)
 {
-    MskPort *dummy_left_port, *dummy_right_port;
-
-    return can_connect_ports(left, left_port_name, right, right_port_name,
-            error, &dummy_left_port, &dummy_right_port);
-}
-
-void msk_connect_ports(MskModule *left, gchar *left_port_name,
-                       MskModule *right, gchar *right_port_name)
-{
     MskPort *left_port, *right_port;
-    GError *error = NULL;
 
-    can_connect_ports(left, left_port_name, right, right_port_name,
-            &error, &left_port, &right_port);
+    if ( !can_connect_ports(left, left_port_name, right, right_port_name,
+            error, &left_port, &right_port) )
+        return FALSE;
 
-    if ( error )
-    {
-        g_error("Code bug! Cannot connect ports: %s", error->message);
-    }
-
+    /* If the input port already has a connection, disconnect it; only one
+     * connection per input port allowed. */
     if ( right_port->input.connection )
     {
         MskPort *old_left_port = right_port->input.connection;
@@ -556,18 +544,32 @@ void msk_connect_ports(MskModule *left, gchar *left_port_name,
         right_port->buffer = NULL;
     }
 
-/*    // TODO: use something other than left_port
-    while ( left_port->output.hardlink )
-        left_port = left_port->output.hardlink;
+    if ( !msk_container_sort(left->parent) )
+    {
+        /* If it failed, we may have a loop... revert it. */
+        g_set_error(error, 0, 0, "Loop in container. Loops are only possible "
+                "if there is a Delay module inside the loop.");
 
-    right_port->buffer = left_port->buffer;*/
-
-    /* If this fails, then it's a bug in the code. The 'can_connect_ports'
-     * function should catch everything. */
-    msk_container_sort(left->parent);
+        msk_disconnect_input_port(right_port);
+        return FALSE;
+    }
 
     /* Update the affected module. */
     msk_module_update(right_port->owner);
+    return TRUE;
+}
+
+void msk_connect_ports(MskModule *left, gchar *left_port_name,
+                       MskModule *right, gchar *right_port_name)
+{
+    GError *error = NULL;
+
+    msk_try_connect_ports(left, left_port_name, right, right_port_name, &error);
+
+    if ( error )
+    {
+        g_error("Code bug! Cannot connect ports: %s", error->message);
+    }
 }
 
 void msk_meld_ports(MskPort *inport, MskPort *outport)

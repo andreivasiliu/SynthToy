@@ -22,11 +22,13 @@ enum
 /* gmskmain.c */
 typedef void (*GmskInvalidateCallback)(gpointer user_data);
 typedef void (*GmskSelectModuleCallback)(MskModule *module, gpointer user_data);
+typedef void (*GmskErrorMessageCallback)(gchar *message, gpointer user_data);
 
 void GMSK_API gmsk_init(MskContainer *root);
 void GMSK_API gmsk_draw_module_at(MskModule *module, int x, int y);
 void GMSK_API gmsk_set_invalidate_callback(GmskInvalidateCallback callback, gpointer user_data);
 void GMSK_API gmsk_set_select_module_callback(GmskSelectModuleCallback callback, gpointer user_data);
+void GMSK_API gmsk_set_error_message_callback(GmskErrorMessageCallback callback, gpointer user_data);
 void GMSK_API gmsk_lock_mutex();
 void GMSK_API gmsk_unlock_mutex();
 MskModule GMSK_API *gmsk_create_module(char *name);

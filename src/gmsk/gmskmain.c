@@ -13,8 +13,10 @@ MskContainer *root_container, *current_container;
 
 GmskInvalidateCallback invalidate_callback;
 GmskSelectModuleCallback select_module_callback;
+GmskErrorMessageCallback error_message_callback;
 gpointer invalidate_userdata;
 gpointer select_module_userdata;
+gpointer error_message_userdata;
 
 void gmsk_init(MskContainer *root)
 {
@@ -41,6 +43,12 @@ void gmsk_set_select_module_callback(GmskSelectModuleCallback callback, gpointer
     select_module_userdata = user_data;
 }
 
+void gmsk_set_error_message_callback(GmskErrorMessageCallback callback, gpointer user_data)
+{
+    error_message_callback = callback;
+    error_message_userdata = user_data;
+}
+
 void gmsk_lock_mutex()
 {
     g_mutex_lock(lock_for_model);
@@ -54,14 +62,22 @@ void gmsk_unlock_mutex()
 MskModule *gmsk_create_module(char *name)
 {
     MskModule *module;
+    GError *error = NULL;
 
     gmsk_lock_mutex();
     msk_container_deactivate(root_container->module->world->root);
 
-    module = msk_factory_create_module(name, current_container);
+    module = msk_factory_create_module(name, current_container, &error);
 
     msk_container_activate(root_container->module->world->root);
     gmsk_unlock_mutex();
+
+    if ( error )
+    {
+        gmsk_error_message(error->message);
+        g_error_free(error);
+        return NULL;
+    }
 
     draw_module(module, -1, -1);
 

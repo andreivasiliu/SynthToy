@@ -4,7 +4,7 @@
 
 #include "modwinmm.h"
 
-#define BUFFERS 6
+#define BUFFERS 14
 
 typedef struct _ModWinmmState
 {

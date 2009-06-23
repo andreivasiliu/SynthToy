@@ -28,7 +28,17 @@ static void msk_firfilter_deactivate(MskModule *self, void *state)
 
 static void msk_firfilter_process(MskModule *self, int start, int frames, void *state)
 {
+    const float *in = msk_module_get_output_buffer(self, "in");
+    float *out = msk_module_get_output_buffer(self, "out");
+    float **a = (float **) self->buffer_groups.group[0];
+    int i, g;
 
+    for ( i = start; i < start + frames; i++ )
+    {
+        out[i] = a[0][i] * in[i];
+        for ( g = 0; g < self->buffer_groups.group_size[0]; g++ )
+            ;
+    }
 
 }
 
@@ -58,7 +68,7 @@ MskModule *msk_firfilter_create(MskContainer *parent)
             sizeof(MskFIRFilterState));
 
     msk_add_input_port(mod, "in", MSK_AUDIO_DATA, 0.0f);
-    port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 1.0f);
+    port = msk_add_input_port(mod, "a0", MSK_AUDIO_DATA, 1.0f);
     msk_add_port_to_buffer_group(port, 0);
     port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 0.0f);
     msk_add_port_to_buffer_group(port, 0);
@@ -130,11 +140,9 @@ MskModule *msk_iirfilter_create(MskContainer *parent)
             sizeof(MskIIRFilterState));
 
     msk_add_input_port(mod, "in", MSK_AUDIO_DATA, 0.0f);
-    port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 1.0f);
-    msk_add_port_to_buffer_group(port, 0);
-    port = msk_add_input_port(mod, "b#", MSK_AUDIO_DATA, 0.0f);
+    port = msk_add_input_port(mod, "b0", MSK_AUDIO_DATA, 0.0f);
     msk_add_port_to_buffer_group(port, 1);
-    port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 0.0f);
+    port = msk_add_input_port(mod, "a#", MSK_AUDIO_DATA, 1.0f);
     msk_add_port_to_buffer_group(port, 0);
     port = msk_add_input_port(mod, "b#", MSK_AUDIO_DATA, 0.0f);
     msk_add_port_to_buffer_group(port, 1);

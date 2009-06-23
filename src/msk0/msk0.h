@@ -139,7 +139,7 @@ struct _MskModule
 {
     /* Subclass, if the module is also a container. */
     MskContainer *container;
-    
+
     gchar *name;
     MskWorld *world;
     MskContainer *parent;
@@ -230,7 +230,10 @@ gpointer      MSK_API msk_module_get_output_buffer(MskModule *mod, gchar *name);
 
 /* Ports. */
 void MSK_API msk_connect_ports(MskModule *left, gchar *left_port_name,
-                       MskModule *right, gchar *right_port_name);
+        MskModule *right, gchar *right_port_name);
+gboolean MSK_API msk_try_connect_ports(MskModule *left, gchar *left_port_name,
+        MskModule *right, gchar *right_port_name, GError **error);
+
 void MSK_API msk_disconnect_input_port(MskPort *in_port);
 void MSK_API msk_disconnect_output_port(MskPort *out_port);
 
@@ -279,7 +282,7 @@ void MSK_API msk_message_pitch_bend(MskWorld *world, short channel, int value);
 void MSK_API msk_message_channel_pressure(MskWorld *world, short channel, short value);
 
 
-MskModule MSK_API *msk_factory_create_module(const char *name, MskContainer *parent);
+MskModule MSK_API *msk_factory_create_module(const char *name, MskContainer *parent, GError **error);
 MskContainer MSK_API *msk_factory_create_container(const char *name, MskContainer *parent);
 MskContainer MSK_API *msk_load_world_from_file(const gchar *filename,
         MskModuleLoadCallback moduleload_callback, GError **error);

@@ -405,7 +405,7 @@ gboolean msk_container_sort(MskContainer *container)
     GList *lmod;
 
     if ( container_has_loop(container) )
-        g_error("Loop in container.");
+        return FALSE;
 
     for ( lmod = container->module_list; lmod; lmod = lmod->next )
     {

@@ -18,6 +18,7 @@ extern void draw_module(MskModule *mod, long x, long y);
 
 extern void on_editor_invalidated(void *userdata);
 extern void on_module_selected(MskModule *module, void *userdata);
+extern void on_editor_error_message(gchar *message, void *userdata);
 
 float array[512];
 float array2[512];
@@ -55,6 +56,7 @@ void aural_init()
     gmsk_init(aural_root);
     gmsk_set_invalidate_callback(&on_editor_invalidated, NULL);
     gmsk_set_select_module_callback(&on_module_selected, NULL);
+    gmsk_set_error_message_callback(&on_editor_error_message, NULL);
 
     gmsk_draw_module_at(output1, 540, 70);
     gmsk_draw_module_at(output2, 540, 110);

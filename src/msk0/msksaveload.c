@@ -150,9 +150,14 @@ MskContainer *msk_load_world_from_file(const gchar *filename,
         }
         else
         {
-            modules[i] = msk_factory_create_module(type, containers[parent]);
+            modules[i] = msk_factory_create_module(type, containers[parent], error);
 
-            if ( !modules[i] )
+            if ( *error )
+            {
+                g_prefix_error(error, "Load Error: ");
+                abort = TRUE;
+            }
+            else if ( !modules[i] )
             {
                 g_set_error(error, 0, 0, "The module factory does not know "
                         "about modules of type '%s'.", type);

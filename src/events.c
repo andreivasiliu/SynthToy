@@ -19,6 +19,7 @@ extern void virkb_mouseoff();
 extern void emulate_control_change(int channel, int control, int value);
 
 extern float array[512];
+extern int keyboard_octave;
 
 static const guint compkey_notes[] =
 {
@@ -79,9 +80,9 @@ G_MODULE_EXPORT gboolean on_drawingarea3_key_event(GtkObject *object,
              alternate_compkey_notes[i] == key )
         {
             if ( event->type == GDK_KEY_PRESS )
-                virkb_keypress(i + 60);
+                virkb_keypress(i + 60 + 12 * keyboard_octave);
             else if ( event->type == GDK_KEY_RELEASE )
-                virkb_keyrelease(i + 60);
+                virkb_keyrelease(i + 60 + 12 * keyboard_octave);
 
             return TRUE;
         }
@@ -139,6 +140,11 @@ G_MODULE_EXPORT void on_vscale_mw_value_changed(GtkRange *range)
 G_MODULE_EXPORT void on_vscale_pw_value_changed(GtkObject *object)
 {
 
+}
+
+G_MODULE_EXPORT void on_vscale_octave_value_changed(GtkRange *range)
+{
+    keyboard_octave = (int) gtk_range_get_value(range);
 }
 
 G_MODULE_EXPORT void on_drawingarea1_expose_event(GtkObject *object,
@@ -259,6 +265,7 @@ G_MODULE_EXPORT void on_menuitem_open_activate(GtkMenuItem *menuitem,
                     GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s", error->message);
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
+            g_error_free(error);
         }
         else
         {
@@ -313,6 +320,7 @@ G_MODULE_EXPORT void on_menuitem_save_activate(GtkMenuItem *menuitem,
                     GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s", error->message);
             gtk_dialog_run(GTK_DIALOG(dialog));
             gtk_widget_destroy(dialog);
+            g_error_free(error);
         }
     }
 
@@ -321,6 +329,51 @@ G_MODULE_EXPORT void on_menuitem_save_activate(GtkMenuItem *menuitem,
 
 
     // TODO: this is just for testing.
+}
+
+
+G_MODULE_EXPORT void on_menuitem_about_activate(GtkMenuItem *menuitem,
+                                                gpointer     user_data)
+{
+    // TODO: This should definitely not be hardcoded... find an external way to do it.
+    const gchar *authors[] =
+    {
+            "Andrei Vasiliu <andrei.vasiliu@infoiasi.ro>",
+            NULL,
+    };
+
+    const gchar *comments =
+        "Modular Synthesizer is a portable, graphical, modular environment that can "
+        "be used to create a syntheziser, which is best suited as a digital musical "
+        "instrument.";
+
+    const gchar *copyright =
+        "Copyright (c) 2009  Andrei Vasiliu <andrei.vasiliu@infoiasi.ro>";
+
+    const gchar *license =
+        "Copyright (C) 2009  Andrei Vasiliu <andrei.vasiliu@infoiasi.ro>\n"
+        "\n"
+        "This program is free software; you can redistribute it and/or\n"
+        "modify it under the terms of the GNU Lesser General Public\n"
+        "License as published by the Free Software Foundation; either\n"
+        "version 2.1 of the License, or (at your option) any later version.\n"
+        "\n"
+        "This program is distributed in the hope that it will be useful,\n"
+        "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+        "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n"
+        "Lesser General Public License for more details.\n"
+        "\n"
+        "You should have received a copy of the GNU Lesser General Public\n"
+        "License along with this library; if not, write to the Free Software\n";
+
+    gtk_show_about_dialog(NULL,
+            "program-name", "Modular Synthesizer",
+            "title", "About Modular Synthesizer",
+            "comments", comments,
+            "authors", authors,
+            "license", license,
+            "copyright", copyright,
+            NULL);
 }
 
 
@@ -389,6 +442,19 @@ void on_module_selected(MskModule *module, void *userdata)
 void on_editor_invalidated(void *userdata)
 {
     gtk_widget_queue_draw(GTK_WIDGET(editor));
+}
+
+
+void on_editor_error_message(gchar *message, void *userdata)
+{
+    GtkWidget *dialog;
+
+    dialog = gtk_message_dialog_new(GTK_WINDOW(main_window),
+            GTK_DIALOG_DESTROY_WITH_PARENT,
+            GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "GMSK Error");
+    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", message);
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
 }
 
 
