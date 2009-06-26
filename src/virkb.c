@@ -128,14 +128,18 @@ void virkb_noteon(int note)
 {
     notes_active[note] = TRUE;
 
+    gdk_threads_enter();
     gtk_widget_queue_draw(GTK_WIDGET(virkb));
+    gdk_threads_leave();
 }
 
 void virkb_noteoff(int note)
 {
     notes_active[note] = FALSE;
 
+    gdk_threads_enter();
     gtk_widget_queue_draw(GTK_WIDGET(virkb));
+    gdk_threads_leave();
 }
 
 

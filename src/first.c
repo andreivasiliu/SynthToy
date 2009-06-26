@@ -79,7 +79,9 @@ void paint_array_to_widget(GtkWidget *widget, float *array, int length)
 
 gboolean periodic_refresh(gpointer instance)
 {
+    gdk_threads_enter();
     gtk_widget_queue_draw(GTK_WIDGET(left_osc));
+    gdk_threads_leave();
 
     return TRUE;
 }
@@ -99,7 +101,7 @@ int main(int argc, char *argv[])
     char	*errmsg;
 
     g_thread_init(NULL);
-//    gdk_threads_init();
+    gdk_threads_init();
 
 #ifdef HAVE_JACK
     jack_instance = modjack_init(process_func, event_func, NULL, &errmsg);
@@ -177,9 +179,9 @@ int main(int argc, char *argv[])
     modwinmm_activate(winmm_instance);
 #endif
 
-//    gdk_threads_enter();
+    gdk_threads_enter();
     gtk_main();
-//    gdk_threads_leave();
+    gdk_threads_leave();
 
     // This is here for the Windows version, which hangs withou it.
     exit(0);
