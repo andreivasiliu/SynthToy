@@ -338,20 +338,20 @@ G_MODULE_EXPORT void on_menuitem_about_activate(GtkMenuItem *menuitem,
     // TODO: This should definitely not be hardcoded... find an external way to do it.
     const gchar *authors[] =
     {
-            "Andrei Vasiliu <andrei.vasiliu@infoiasi.ro>",
+            "Andrei Vasiliu <andreivasiliu@users.sourceforge.net>",
             NULL,
     };
 
     const gchar *comments =
-        "Modular Synthesizer is a portable, graphical, modular environment that can "
-        "be used to create a syntheziser, which is best suited as a digital musical "
-        "instrument.";
+        "SynthToy is a portable, graphical, modular environment that can be "
+        "used to create a syntheziser, which is best suited as a digital "
+        "musical instrument.";
 
     const gchar *copyright =
-        "Copyright (c) 2009  Andrei Vasiliu <andrei.vasiliu@infoiasi.ro>";
+        "Copyright (c) 2009  Andrei Vasiliu <andreivasiliu@users.sourceforge.net>";
 
     const gchar *license =
-        "Copyright (C) 2009  Andrei Vasiliu <andrei.vasiliu@infoiasi.ro>\n"
+        "Copyright (C) 2009  Andrei Vasiliu <andreivasiliu@users.sourceforge.net>\n"
         "\n"
         "This program is free software; you can redistribute it and/or\n"
         "modify it under the terms of the GNU Lesser General Public\n"
@@ -367,8 +367,8 @@ G_MODULE_EXPORT void on_menuitem_about_activate(GtkMenuItem *menuitem,
         "License along with this library; if not, write to the Free Software\n";
 
     gtk_show_about_dialog(NULL,
-            "program-name", "Modular Synthesizer",
-            "title", "About Modular Synthesizer",
+            "program-name", "SynthToy",
+            "title", "About SynthToy",
             "comments", comments,
             "authors", authors,
             "license", license,

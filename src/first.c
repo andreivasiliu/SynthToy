@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
 
     g_thread_init(NULL);
     gdk_threads_init();
+    gdk_threads_enter();
 
 #ifdef HAVE_JACK
     jack_instance = modjack_init(process_func, event_func, NULL, &errmsg);
@@ -179,7 +180,6 @@ int main(int argc, char *argv[])
     modwinmm_activate(winmm_instance);
 #endif
 
-    gdk_threads_enter();
     gtk_main();
     gdk_threads_leave();
 

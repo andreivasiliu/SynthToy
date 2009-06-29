@@ -25,11 +25,6 @@ float array2[512];
 
 gdouble processing_time;
 
-struct voice_type
-{
-    MskModule *osc, *lfo, *osc_freq, *lfo_freq, *amp, *freq_add;
-} voice;
-
 float note_frequencies[128];
 int last_note = -1;
 
@@ -114,21 +109,8 @@ void uint8_to_binary(int from, char *to)
 #define MIDI_14BIT(lbits, mbits)   (((int)mbits << 7) | ((int)lbits))
 
 
-void event_func(int nframes, int type, void *event_data, int event_size, void *data)
+void process_midi(unsigned char *message, unsigned int message_size)
 {
-    struct voice_type *v;
-    unsigned char sb[9], db1[9], db2[9];
-    unsigned char *message;
-
-    if ( type != 1 )
-        return;
-
-    // TODO: Isn't a gmsk_lock_mutex needed here?
-
-    message = (unsigned char*) event_data;
-
-    v = &voice;
-
     switch ( MIDI_TYPE(message[0]) )
     {
     case 0x8:  /* 1000 */
@@ -194,13 +176,25 @@ void event_func(int nframes, int type, void *event_data, int event_size, void *d
 
         break;
     default:
-        uint8_to_binary(message[0], sb);
-        uint8_to_binary(message[1], db1);
-        uint8_to_binary(message[2], db2);
+        {
+            unsigned char sb[9], db1[9], db2[9];
 
-        g_print("Status: %s, Data1: %s, Data2 byte: %s.\n", sb, db1, db2);
+            uint8_to_binary(message[0], sb);
+            uint8_to_binary(message[1], db1);
+            uint8_to_binary(message[2], db2);
+
+            g_print("Status: %s, Data1: %s, Data2 byte: %s.\n", sb, db1, db2);
+        }
         break;
     }
+}
+
+void event_func(int nframes, int type, void *event_data, int event_size, void *data)
+{
+    gdk_threads_enter();
+    if ( type == 1 )
+        process_midi((unsigned char *) event_data, event_size);
+    gdk_threads_leave();
 }
 
 void emulate_note_on(int channel, int key, int velocity)
@@ -211,7 +205,7 @@ void emulate_note_on(int channel, int key, int velocity)
     message[1] = key & 0x7F;
     message[2] = velocity & 0x7F;
 
-    event_func(0, 1, message, 3, NULL);
+    process_midi(message, 3);
 }
 
 void emulate_note_off(int channel, int key)
@@ -222,7 +216,7 @@ void emulate_note_off(int channel, int key)
     message[1] = key & 0x7F;
     message[2] = 0;
 
-    event_func(0, 1, message, 3, NULL);
+    process_midi(message, 3);
 }
 
 void emulate_control_change(int channel, int control, int value)
@@ -233,6 +227,6 @@ void emulate_control_change(int channel, int control, int value)
     message[1] = control & 0x7F;
     message[2] = value & 0x7F;
 
-    event_func(0, 1, message, 3, NULL);
+    process_midi(message, 3);
 }
 

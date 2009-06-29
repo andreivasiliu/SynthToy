@@ -11,7 +11,7 @@
     </columns>
   </object>
   <object class="GtkWindow" id="window">
-    <property name="title" translatable="yes" comments="Main window title">Modular Synth</property>
+    <property name="title" translatable="yes" comments="Main window title">SynthToy</property>
     <accel-groups>
       <group name="accelgroup1"/>
     </accel-groups>
